@@ -146,6 +146,8 @@ export default function Index() {
                 >
                   Login
                 </Text>
+                <TouchableOpacity className="bg-slate-600" onPress={router.replace('/(receptionist)/receptionisthome')}><Text>receptionist</Text></TouchableOpacity>
+                
 
                 <View className={`${isWeb ? "mb-5" : "mb-4"}`}>
                   <View className="flex-row items-center bg-white/10 rounded-2xl px-4 border border-black/20">

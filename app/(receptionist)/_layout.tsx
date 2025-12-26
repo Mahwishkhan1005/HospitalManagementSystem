@@ -1,14 +1,40 @@
-import React, { Component } from "react";
-import { Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
+import React from "react";
 
-export class _layout extends Component {
-  render() {
-    return (
-      <View>
-        <Text> textInComponent </Text>
-      </View>
-    );
-  }
+const _layout =() => {
+ 
+ return (
+  <Tabs
+    screenOptions={{
+      tabBarActiveTintColor: "#2eb8b8",
+      tabBarInactiveTintColor: "gray",
+    }}
+  >
+    <Tabs.Screen
+      name="receptionisthome"
+      options={{
+        headerShown: false,
+        tabBarLabel: "Home",
+        tabBarIcon: ({ color, size }) => (
+          <Ionicons name="business" size={size} color={color} />
+        ),
+      }}
+    />
+
+    <Tabs.Screen
+      name="receptionDoctor"
+      options={{
+        tabBarLabel: "Doctors",
+        tabBarIcon: ({ color, size }) => (
+          <Ionicons name="medkit" size={size} color={color} />
+        ),
+      }}
+    />
+  </Tabs>
+);
+
 }
+
 
 export default _layout;
