@@ -10,6 +10,7 @@ import {
   ImageBackground,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -22,8 +23,15 @@ interface DecodedToken {
 }
 
 export default function Index() {
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    number: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [isLoading, setIsLoading] = useState(true);
+  const [isRegistering, setIsRegistering] = useState(false); // Toggle state
   const isWeb = Platform.OS === "web";
 
   useEffect(() => {
@@ -35,7 +43,6 @@ export default function Index() {
       const token = await AsyncStorage.getItem("AccessToken");
       if (token) {
         const decoded = jwtDecode<DecodedToken>(token);
-
         redirectUser(decoded.role);
       }
     } catch (e) {
@@ -46,41 +53,87 @@ export default function Index() {
   };
 
   const redirectUser = (role: string) => {
-    if (role === "ROLE_PATIENT") {
-      router.replace("/(patients)/patienthome");
-    } else if (role === "ROLE_HOSPITAL") {
-      router.replace("/(hospital)/hospitalhome");
-    } else if (role === "ROLE_RECEPTIONIST") {
+    if (role === "USER") router.replace("/(patients)/patienthome");
+    else if (role === "ADMIN") router.replace("/(superAdmin)/adminhome");
+    else if (role === "ROLE_RECEPTIONIST")
       router.replace("/(receptionist)/receptionisthome");
-    } else {
-      router.replace("/(superAdmin)/adminhome");
-    }
+    else router.replace("/(hospital)/hospitalhome");
   };
 
   const handleLogin = async () => {
     try {
       const response = await axios.post(
-        "http://192.168.0.225:8083/api/auth/login",
+        "http://192.168.0.229:8080/api/auth/login",
         { email: formData.email, password: formData.password }
       );
 
       if (response.status === 200) {
-        await AsyncStorage.setItem("AccessToken", response.data.accessToken);
-        const decoded = jwtDecode<DecodedToken>(response.data.accessToken);
+        await AsyncStorage.setItem("AccessToken", response.data.token);
+        const decoded = jwtDecode<DecodedToken>(response.data.token);
         redirectUser(decoded.role);
       }
     } catch (error: any) {
-      if (isWeb) {
-        window.alert("Login Failed: Please check your credentials.");
-      } else {
-        Alert.alert("Login Failed", "Please check your credentials.");
-      }
+      isWeb
+        ? window.alert("Login Failed")
+        : Alert.alert("Login Failed", "Check credentials");
     }
   };
 
-  if (isLoading) {
-    return null;
-  }
+  const handleRegister = async () => {
+    // 1. Validation for empty fields
+    if (
+      !formData.name ||
+      !formData.email ||
+      !formData.number ||
+      !formData.password
+    ) {
+      const msg = "Please fill in all fields";
+      isWeb ? window.alert(msg) : Alert.alert("Error", msg);
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      const msg = "Passwords do not match";
+      isWeb ? window.alert(msg) : Alert.alert("Error", msg);
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        "http://192.168.0.229:8080/api/auth/register",
+        {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.number,
+          password: formData.password,
+          role: "USER",
+        }
+      );
+
+      if (response.status === 201 || response.status === 200) {
+        const successMsg = "Account created successfully! Please login.";
+        isWeb ? window.alert(successMsg) : Alert.alert("Success", successMsg);
+
+        setIsRegistering(false);
+
+        setFormData({
+          ...formData,
+          password: "",
+          confirmPassword: "",
+        });
+      }
+    } catch (error: any) {
+      console.error("Registration Error:", error);
+      const errorMsg =
+        error.response?.data?.message ||
+        "Registration Failed. Email might already exist.";
+      isWeb
+        ? window.alert(errorMsg)
+        : Alert.alert("Registration Failed", errorMsg);
+    }
+  };
+
+  if (isLoading) return null;
 
   return (
     <LinearGradient
@@ -94,19 +147,18 @@ export default function Index() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1 items-center justify-center p-4"
       >
-        {/* <BlurView intensity={50} tint="dark"></BlurView> */}
         <View
           className={`${
             isWeb
-              ? "bg-white w-[1000px] h-[500px] flex-row rounded-2xl"
-              : "w-ful bg-white rounded-xl"
+              ? "bg-white w-[1000px] min-h-[550px] flex-row rounded-2xl"
+              : "w-full bg-white rounded-xl p-5"
           }`}
         >
           <View
             className={`${
               isWeb
-                ? " w-1/2 h-full rounded-2xl p-8 ml-8"
-                : "h-[200px] w-[230px] ml-6 bg-white rounded-2xl"
+                ? "h-[500px] w-[500px] p-8 ml-8"
+                : "h-[200px] w-full m-5 bg-white rounded-t-2xl items-center"
             }`}
           >
             <ImageBackground
@@ -117,98 +169,119 @@ export default function Index() {
               className={`${
                 isWeb
                   ? "flex-1 rounded-2xl"
-                  : "flex-1 w-[200px] m-5 rounded-2xl"
+                  : "h-full w-[200px] p-2 rounded-2xl"
               }`}
-            ></ImageBackground>
+            />
           </View>
 
           <View
             className={`${
               isWeb
-                ? " w-1/2 h-full rounded-xl flex-1 justify-center items-center"
-                : " bg-white rounded-2xl justify-center items-center"
+                ? "w-1/2 flex-1 justify-center items-center"
+                : "bg-white rounded-b-2xl items-center"
             }`}
           >
             <View
               className={`${
                 isWeb
-                  ? "w-[350px] overflow-hidden rounded-[30px] border border-white/20 shadow-slate-300  shadow-lg"
-                  : "w-[250px] p-4 m-4 border border-black/10 rounded-2xl "
-              } `}
+                  ? "w-[350px] p-8 m-8 border border-black/10 rounded-[30px] shadow-lg"
+                  : "w-[90%] p-2 mb-4 border border-black/10 rounded-2xl"
+              }`}
             >
-              <View className={`${isWeb ? "p-8" : ""}`}>
-                <Text
-                  className={`${
-                    isWeb
-                      ? "text-3xl italic font-bold mb-8 text-center uppercase tracking-widest"
-                      : "text-xl italic font-bold mb-5 text-center uppercase tracking-widest"
-                  }`}
-                >
-                  Login
-                </Text>
+              <Text
+                className={`${
+                  isWeb
+                    ? "text-2xl italic font-bold mb-6 text-center uppercase tracking-widest"
+                    : "text-xl italic font-bold mb-4 text-center uppercase tracking-widest"
+                }`}
+              >
+                {isRegistering ? "Register" : "Login"}
+              </Text>
 
-                <View className={`${isWeb ? "mb-5" : "mb-4"}`}>
-                  <View className="flex-row items-center bg-white/10 rounded-2xl px-4 border border-black/20">
-                    <FontAwesome name="user" size={18} color="" />
-                    <TextInput
-                      placeholder="Email"
-                      placeholderTextColor="black"
-                      value={formData.email}
-                      onChangeText={(text) =>
-                        setFormData({ ...formData, email: text })
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {isRegistering && (
+                  <>
+                    <InputField
+                      icon="user"
+                      placeholder="Full Name"
+                      value={formData.name}
+                      onChange={(t: any) =>
+                        setFormData({ ...formData, name: t })
                       }
-                      className={`flex-1 px-3 py-4 ${
-                        isWeb ? "outline-none" : ""
-                      }`}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
                     />
-                  </View>
-                </View>
+                    <InputField
+                      icon="phone"
+                      placeholder="Mobile Number"
+                      value={formData.number}
+                      onChange={(t: any) =>
+                        setFormData({ ...formData, number: t })
+                      }
+                      keyboardType="phone-pad"
+                    />
+                  </>
+                )}
 
-                <View className="mb-8">
-                  <View className="flex-row items-center bg-white/10 rounded-2xl px-4 border border-black/20">
-                    <FontAwesome name="lock" size={18} color="black" />
-                    <TextInput
-                      placeholder="Password"
-                      placeholderTextColor="black"
-                      secureTextEntry
-                      value={formData.password}
-                      onChangeText={(text) =>
-                        setFormData({ ...formData, password: text })
-                      }
-                      className={`flex-1  px-3 py-4 ${
-                        isWeb ? "outline-none" : ""
-                      }`}
-                    />
-                  </View>
-                </View>
+                <InputField
+                  icon="envelope"
+                  placeholder="Email"
+                  value={formData.email}
+                  onChange={(t: any) => setFormData({ ...formData, email: t })}
+                  keyboardType="email-address"
+                />
+
+                <InputField
+                  icon="lock"
+                  placeholder="Password"
+                  value={formData.password}
+                  onChange={(t: any) =>
+                    setFormData({ ...formData, password: t })
+                  }
+                  secure
+                />
+
+                {isRegistering && (
+                  <InputField
+                    icon="lock"
+                    placeholder="Confirm Password"
+                    value={formData.confirmPassword}
+                    onChange={(t: any) =>
+                      setFormData({ ...formData, confirmPassword: t })
+                    }
+                    secure
+                  />
+                )}
 
                 <TouchableOpacity
-                  onPress={handleLogin}
+                  onPress={isRegistering ? handleRegister : handleLogin}
                   activeOpacity={0.9}
                   className={`${
                     isWeb
-                      ? "w-2/3 bg-[#2eb8b8] p-3 ml-12 rounded-2xl items-center mb-4"
-                      : "w-2/3 bg-[#2eb8b8] p-2 ml-12 rounded-2xl items-center mb-4"
+                      ? "bg-[#2eb8b8] p-3 rounded-2xl items-center mb-4 mt-2"
+                      : "bg-[#2eb8b8] p-2 rounded-2xl items-center mb-4"
                   }`}
                 >
                   <Text className="text-white font-semibold text-lg uppercase">
-                    Login
+                    {isRegistering ? "Sign Up" : "Login"}
                   </Text>
                 </TouchableOpacity>
 
                 <View className="flex-row justify-between px-2">
-                  <TouchableOpacity>
-                    <Text className=" text-xs font-medium">
-                      Forgot Password?
+                  {!isRegistering && (
+                    <TouchableOpacity>
+                      <Text className="text-xs font-medium">
+                        Forgot Password?
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    onPress={() => setIsRegistering(!isRegistering)}
+                  >
+                    <Text className="text-xs font-semibold ">
+                      {isRegistering ? "Back to Login" : "Register Now"}
                     </Text>
                   </TouchableOpacity>
-                  <TouchableOpacity>
-                    <Text className=" text-xs font-medium">Register Now</Text>
-                  </TouchableOpacity>
                 </View>
-              </View>
+              </ScrollView>
             </View>
           </View>
         </View>
@@ -216,3 +289,34 @@ export default function Index() {
     </LinearGradient>
   );
 }
+const isWeb = Platform.OS === "web";
+const InputField = ({
+  icon,
+  placeholder,
+  value,
+  onChange,
+  secure = false,
+  keyboardType = "default",
+}: any) => (
+  <View className={`${isWeb ? "mb-4" : "mb-4"}`}>
+    <View
+      className={`${
+        isWeb
+          ? "flex-row items-center bg-white/10 rounded-2xl px-4 border border-black/20"
+          : "flex-row items-center bg-white/10 rounded-2xl px-2 border border-black/20"
+      }`}
+    >
+      <FontAwesome name={icon} size={18} color="black" />
+      <TextInput
+        placeholder={placeholder}
+        placeholderTextColor="#666"
+        value={value}
+        onChangeText={onChange}
+        secureTextEntry={secure}
+        keyboardType={keyboardType}
+        autoCapitalize="none"
+        className={`${isWeb ? "flex-1 px-3 py-3" : ""}`}
+      />
+    </View>
+  </View>
+);
