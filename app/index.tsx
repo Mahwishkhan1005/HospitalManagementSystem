@@ -92,7 +92,7 @@ export default function Index() {
     else if (role === "ADMIN") router.replace("/(superAdmin)/adminhome");
     else if (role === "RECEIPTIOINIST")
       router.replace("/receptionist");
-    else router.replace("/(hospital)/hospitalhome");
+    else router.replace("/receptionist");
   };
 
   const handleLogin = async () => {

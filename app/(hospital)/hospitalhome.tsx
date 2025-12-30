@@ -162,7 +162,7 @@ const HospitalHome = () => {
 
           <View className="flex-row gap-3">
             <TouchableOpacity
-              onPress={() => router.replace("/(hospital)/hospitalhome")}
+              onPress={() => router.replace("/")}
               className="bg-white/40 p-2 rounded-full"
             >
               <Ionicons name="home" size={18} color="#374151" />
