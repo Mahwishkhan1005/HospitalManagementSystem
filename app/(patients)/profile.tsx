@@ -1,23 +1,39 @@
 import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-
+import RazorpayCheckout, { SuccessResponse } from "react-native-razorpay";
+interface Appointment {
+  id: string;
+  doctorName?: string;
+  hospitalName?: string;
+  doctorId: string;
+  appointmentDate: string;
+  timeSlot: string;
+  status: string;
+  issue: string;
+}
 export default function ProfilePage() {
   const router = useRouter();
-  const [appointments, setAppointments] = useState([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [profileImage, setProfileImage] = useState(
+    "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+  );
+  const [uploading, setUploading] = useState(false);
   const PATIENT_ID = 1;
-  const BASE_URL = "http://192.168.0.215:8081";
+  const BASE_URL = "http://192.168.0.217:8081";
   const userData = {
     name: "shanmukhi",
     email: "shanmukhi@example.com",
@@ -27,8 +43,113 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch(
+          `${BASE_URL}/api/patient/profile/${PATIENT_ID}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data.imagePath) {
+            const fullImageUrl = data.imagePath.startsWith("http")
+              ? data.imagePath
+              : `${BASE_URL}/${data.imagePath}`;
+
+            setProfileImage(fullImageUrl);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load profile image", e);
+      }
+    };
+
+    fetchProfile();
     loadAppointments();
   }, []);
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Denied",
+        "We need camera roll permissions to change your profile picture."
+      );
+      return;
+    }
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled) {
+      const selectedUri = result.assets[0].uri;
+      uploadImage(selectedUri);
+    }
+  };
+
+  const uploadImage = async (uri: string) => {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      // @ts-ignore
+      formData.append("file", {
+        uri: uri,
+        name: `profile_${PATIENT_ID}.jpg`,
+        type: "image/jpeg",
+      });
+
+      const response = await fetch(
+        `${BASE_URL}/api/patient/upload-profile/${PATIENT_ID}`,
+        {
+          method: "POST",
+          body: formData,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (response.ok) {
+        setProfileImage(uri);
+        Alert.alert("Success", "Profile picture updated!");
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to upload image to server.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const enrichAppointmentData = async (data: any[]) => {
+    return await Promise.all(
+      data.map(async (item: any) => {
+        if (!item.doctorName && item.doctorId) {
+          try {
+            const docRes = await fetch(
+              `${BASE_URL}/api/doctors/${item.doctorId}`
+            );
+            if (docRes.ok) {
+              const docInfo = await docRes.json();
+              return {
+                ...item,
+                doctorName: docInfo.name,
+                hospitalName: docInfo.hospital?.name || "General Hospital",
+              };
+            }
+          } catch (e) {
+            console.error("Error fetching doctor details:", e);
+          }
+        }
+        return item;
+      })
+    );
+  };
   const loadAppointments = async () => {
     setLoading(true);
     try {
@@ -39,20 +160,79 @@ export default function ProfilePage() {
       if (response.ok) {
         const data = await response.json();
 
-        setAppointments(data.reverse());
+        const fullData = await enrichAppointmentData(data);
+        setAppointments(fullData.reverse());
       } else {
-        console.error("Server responded with error", response.status);
+        const saved = await AsyncStorage.getItem("my_appointments");
+        if (saved) {
+          const localData = JSON.parse(saved);
+          const fullData = await enrichAppointmentData(localData);
+          setAppointments(fullData.reverse());
+        }
       }
     } catch (e) {
-      console.error("Network error fetching appointments", e);
-
-      const saved = await AsyncStorage.getItem("my_appointments");
-      if (saved) setAppointments(JSON.parse(saved).reverse());
+      console.error("Fetch error", e);
     } finally {
       setLoading(false);
     }
   };
+  const handlePayment = async (appointment: { id: any; doctorName: any }) => {
+    try {
+      const response = await fetch(
+        `${BASE_URL}/api/patient/payments/create/${appointment.id}/${PATIENT_ID}`,
+        {
+          method: "POST",
+        }
+      );
+      const orderData = await response.json();
 
+      const options = {
+        description: `Appointment with ${appointment.doctorName}`,
+        image: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+        currency: "INR",
+        key: orderData.key,
+        amount: orderData.amount,
+        name: "Healthcare App",
+        order_id: orderData.razorpayOrderId,
+        prefill: {
+          email: userData.email,
+          contact: userData.phone,
+          name: userData.name,
+        },
+        theme: { color: "#2eb8b8" },
+      };
+
+      const successData = await RazorpayCheckout.open(options);
+
+      await verifyPayment(successData, appointment.id);
+    } catch (error) {
+      console.error("Payment failed", error);
+      Alert.alert(
+        "Payment Cancelled",
+        "The payment process was not completed."
+      );
+    }
+  };
+  const verifyPayment = async (
+    paymentData: SuccessResponse,
+    appointmentId: any
+  ) => {
+    const response = await fetch(`${BASE_URL}/api/patient/payments/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        appointmentId,
+        razorpayPaymentId: paymentData.razorpay_payment_id,
+        razorpaySignature: paymentData.razorpay_signature,
+        razorpayOrderId: paymentData.razorpay_order_id,
+      }),
+    });
+
+    if (response.ok) {
+      Alert.alert("Success", "Payment Successful! Appointment Confirmed.");
+      loadAppointments();
+    }
+  };
   return (
     <View className="flex-1 bg-slate-50">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
@@ -68,11 +248,20 @@ export default function ProfilePage() {
           </TouchableOpacity>
 
           <View className="relative">
-            <Image
-              source={{ uri: userData.image }}
-              className="w-28 h-28 rounded-full border-4 border-white/30"
-            />
-            <TouchableOpacity className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-sm">
+            {uploading ? (
+              <View className="w-28 h-28 rounded-full border-4 border-white/30 items-center justify-center bg-black/20">
+                <ActivityIndicator color="white" />
+              </View>
+            ) : (
+              <Image
+                source={{ uri: profileImage }}
+                className="w-28 h-28 rounded-full border-4 border-white/30"
+              />
+            )}
+            <TouchableOpacity
+              className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-sm"
+              onPress={pickImage}
+            >
               <FontAwesome name="camera" size={14} color="#2eb8b8" />
             </TouchableOpacity>
           </View>
@@ -107,7 +296,11 @@ export default function ProfilePage() {
             <ActivityIndicator color="#2eb8b8" />
           ) : appointments.length > 0 ? (
             appointments.map((item, index) => (
-              <AppointmentCard key={index} data={item} />
+              <AppointmentCard
+                key={index}
+                data={item}
+                onPay={(item) => handlePayment(item)}
+              />
             ))
           ) : (
             <View className="bg-white p-10 rounded-3xl items-center border border-dashed border-slate-300">
@@ -145,8 +338,16 @@ const DetailItem = ({
   </View>
 );
 
-const AppointmentCard = ({ data }: { data: any }) => {
-  const isBooked = data.status === "booked";
+const AppointmentCard = ({
+  data,
+  onPay,
+}: {
+  data: any;
+  onPay: (item: any) => void;
+}) => {
+  const status = data.status?.toLowerCase();
+  const isPaid = status === "paid";
+  const isApproved = status === "approved";
 
   return (
     <View className="bg-white p-4 rounded-2xl mb-4 shadow-sm border border-slate-100">
@@ -156,17 +357,17 @@ const AppointmentCard = ({ data }: { data: any }) => {
             {data.doctorName}
           </Text>
           <Text className="text-slate-500 text-sm mb-2">
-            {data.hospitalName || "General Clinic"}
+            {data.hospitalName}
           </Text>
         </View>
         <View
           className={`px-3 py-1 rounded-full ${
-            isBooked ? "bg-green-100" : "bg-orange-100"
+            isPaid ? "bg-green-100" : "bg-orange-100"
           }`}
         >
           <Text
             className={`text-[10px] font-bold uppercase ${
-              isBooked ? "text-green-600" : "text-orange-600"
+              isPaid ? "text-green-600" : "text-orange-600"
             }`}
           >
             {data.status || "Pending"}
@@ -184,16 +385,20 @@ const AppointmentCard = ({ data }: { data: any }) => {
         <View className="flex-row items-center">
           <FontAwesome name="clock-o" size={12} color="#64748b" />
           <Text className="text-slate-600 text-xs ml-2">
-            {data.timeSlot.replace("_", " ")}
+            {data.timeSlot?.replace("_", " ")}
           </Text>
         </View>
       </View>
 
-      <View className="mt-2 bg-slate-50 p-2 rounded-lg">
-        <Text className="text-slate-500 text-[11px] italic">
-          Issue: {data.issue}
-        </Text>
-      </View>
+      {isApproved && !isPaid && (
+        <TouchableOpacity
+          onPress={() => onPay(data)}
+          className="mt-4 bg-[#2eb8b8] py-3 rounded-xl flex-row justify-center items-center"
+        >
+          <FontAwesome name="credit-card" size={14} color="white" />
+          <Text className="text-white font-bold ml-2">Pay & Confirm</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

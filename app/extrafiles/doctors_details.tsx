@@ -17,68 +17,15 @@ import {
   View,
 } from "react-native";
 
-const DOCTORS_DATA = [
-  {
-    id: 101,
-    hospitalId: "1",
-    name: "Dr. Sarah Smith",
-    specialty: "Cardiology",
-    image:
-      "https://media.istockphoto.com/id/2104270041/photo/portrait-of-a-young-caucasian-female-doctor-at-the-ordination.jpg?s=612x612&w=0&k=20&c=FlykOJlw7rFfutD_7OmFy5z4rATURYdSEz9MmFECFDE=",
-  },
-  {
-    id: 102,
-    hospitalId: "1",
-    name: "Dr. John Doe",
-    specialty: "Pediatrics",
-    image:
-      "https://www.shutterstock.com/image-photo/portrait-handsome-male-doctor-stethoscope-600nw-2480850611.jpg",
-  },
-  {
-    id: 202,
-    hospitalId: "2",
-    name: "Dr. John Doe",
-    specialty: "Pediatrics",
-    image:
-      "https://www.shutterstock.com/image-photo/portrait-handsome-male-doctor-stethoscope-600nw-2480850611.jpg",
-  },
-  {
-    id: 201,
-    hospitalId: "2",
-    name: "Dr. Emily White",
-    specialty: "Oncology",
-    image:
-      "https://media.istockphoto.com/id/1425798958/photo/photo-of-confident-female-doctor-in-hospital-looking-at-camera-with-smile.jpg?s=612x612&w=0&k=20&c=i91idG544pXuYkw5ju6iIzm1m-lEqQaygeOOrjG5GEk=",
-  },
-  {
-    id: 301,
-    hospitalId: "3",
-    name: "Dr. Emily White",
-    specialty: "Oncology",
-    image:
-      "https://media.istockphoto.com/id/1425798958/photo/photo-of-confident-female-doctor-in-hospital-looking-at-camera-with-smile.jpg?s=612x612&w=0&k=20&c=i91idG544pXuYkw5ju6iIzm1m-lEqQaygeOOrjG5GEk=",
-  },
-  {
-    id: 302,
-    hospitalId: "3",
-    name: "Dr. Emily White",
-    specialty: "Oncology",
-    image:
-      "https://media.istockphoto.com/id/1425798958/photo/photo-of-confident-female-doctor-in-hospital-looking-at-camera-with-smile.jpg?s=612x612&w=0&k=20&c=i91idG544pXuYkw5ju6iIzm1m-lEqQaygeOOrjG5GEk=",
-  },
-];
-
 export default function HospitalDetails() {
-  const { id, name } = useLocalSearchParams();
+  const { id, name, deptId } = useLocalSearchParams();
   const router = useRouter();
   const isWeb = Platform.OS === "web";
-  const doctors = DOCTORS_DATA.filter((doc) => doc.hospitalId === id);
-
+  const [doctors, setDoctors] = useState<any[]>([]);
+  const [fetchingDoctors, setFetchingDoctors] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [selectedDoctor, setSelectedDoctor] = useState<
-    (typeof DOCTORS_DATA)[0] | null
-  >(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<any | null>(null);
   const [bookingStatus, setBookingStatus] = useState<Record<string, string>>(
     {}
   );
@@ -93,6 +40,28 @@ export default function HospitalDetails() {
     address: "",
     issue: "",
   });
+
+  const fetchDoctorsByDepartment = async () => {
+    try {
+      setFetchingDoctors(true);
+
+      const response = await fetch(
+        `http://192.168.0.126:8080/api/doctors/department/${id}`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setDoctors(data);
+      } else {
+        console.error("Failed to fetch doctors for department:", id);
+      }
+    } catch (error) {
+      console.error("Error fetching doctors:", error);
+    } finally {
+      setFetchingDoctors(false);
+    }
+  };
+
   const fetchAppointments = async () => {
     try {
       const response = await fetch(
@@ -118,15 +87,17 @@ export default function HospitalDetails() {
     }
   };
   useEffect(() => {
-    fetchAppointments();
-  }, []);
+    if (id) {
+      fetchDoctorsByDepartment();
+      fetchAppointments();
+    }
+  }, [id]);
 
-  const handleBookPress = (doctor: (typeof DOCTORS_DATA)[0]) => {
+  const handleBookPress = (doctor: any) => {
     if (bookingStatus[doctor.id]) return;
     setSelectedDoctor(doctor);
     setModalVisible(true);
   };
-
   const submitBooking = async () => {
     if (!selectedDoctor) return;
     setLoading(true);
@@ -142,7 +113,7 @@ export default function HospitalDetails() {
       appointmentDate: dateToSend,
     };
 
-    const url = `http://192.168.0.215:8081/api/patient/appointments/1/2/${selectedDoctor.id}`;
+    const url = `http://192.168.0.216:8081/api/patient/appointments/1/2/${PATIENT_ID}`;
 
     try {
       const response = await fetch(url, {
@@ -211,7 +182,11 @@ export default function HospitalDetails() {
           end={{ x: 1, y: 0.5 }}
           className="p-6"
         >
-          <View className="flex-row items-center">
+          <View
+            className={`${
+              isWeb ? "flex-row items-center" : "flex-row items-center pt-5"
+            }`}
+          >
             <TouchableOpacity onPress={() => router.back()} className="mr-4">
               <FontAwesome name="chevron-left" size={20} color="#000" />
             </TouchableOpacity>

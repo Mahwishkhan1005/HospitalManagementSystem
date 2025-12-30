@@ -95,7 +95,7 @@ export default function choosecareHome() {
     Services:
       "We provide OPD consultations, emergency care, diagnostic imaging, and home-care nursing services.",
 
-    "Help & Support":
+    Support:
       "Our support team is available 24/7. You can reach us via live chat or at support@choosecare.com.",
     Careers:
       "Join our medical network. We are currently looking for pediatricians and senior nurses.",
@@ -104,7 +104,7 @@ export default function choosecareHome() {
     Appointments:
       "Bookings can be managed through your dashboard. Rescheduling is free up to 2 hours before the slot.",
 
-    "Terms & Conditions":
+    Conditions:
       "By using ChooseCare, you agree to our service guidelines, including booking and cancellation policies.",
     "Cookie Policy":
       "We use cookies to improve your browsing experience and provide personalized healthcare recommendations.",
@@ -122,19 +122,59 @@ export default function choosecareHome() {
   };
   return (
     <View className="flex-1 ">
-      <View className="flex-row bg-white/10 items-center justify-between px-6 py-4 border-b border-gray-100 shadow-sm">
-        <View className="flex-row items-center">
-          <View className="bg-[#2eb8b8] p-2 rounded-lg mr-2">
-            <FontAwesome name="plus-square" size={24} color="white" />
+      <View
+        className={`${
+          isWeb
+            ? "flex-row bg-white/10 items-center justify-between px-6 py-4 border-b border-gray-100 shadow-sm"
+            : "flex-row"
+        }`}
+      >
+        <View
+          className={`${
+            isWeb ? "flex-row items-center" : "flex-row items-center"
+          }`}
+        >
+          <View
+            className={`${
+              isWeb
+                ? "bg-[#2eb8b8] p-2 rounded-lg mr-2"
+                : "bg-[#2eb8b8] p-2 rounded-lg mt-10 m-2"
+            }`}
+          >
+            <FontAwesome name="plus-square" size={18} color="white" />
           </View>
-          <Text className="text-3xl italic text-[#2eb8b8] font-bold tracking-tighter">
+          <Text
+            className={`${
+              isWeb
+                ? "text-3xl italic text-[#2eb8b8] font-bold tracking-tighter"
+                : "text-2xl italic text-[#2eb8b8] font-bold tracking-tighter mt-8"
+            }`}
+          >
             ChooseCare
           </Text>
         </View>
 
-        <View className="flex-row items-center space-x-8">
-          <View className="flex-row items-center gap-x-2">
-            <View className="flex-row items-center bg-white h-10 rounded-xl px-6 w-60 lg:w-64">
+        <View
+          className={`${
+            isWeb
+              ? "flex-row items-center space-x-8"
+              : "flex-row items-center space-x-8 mt-8 m-2"
+          }`}
+        >
+          <View
+            className={`${
+              isWeb
+                ? "flex-row items-center gap-x-2"
+                : "flex-row items-center gap-x-4"
+            }`}
+          >
+            <View
+              className={`${
+                isWeb
+                  ? "flex-row items-center bg-white h-10 rounded-xl px-6 w-60 lg:w-64"
+                  : "flex-row items-center bg-white h-[35px] ml-2 rounded-xl px-4 w-32 "
+              }`}
+            >
               <FontAwesome name="search" size={16} color="#666" />
               <TextInput
                 placeholder="Search..."
@@ -145,7 +185,11 @@ export default function choosecareHome() {
           </View>
           <TouchableOpacity
             onPress={handleLogout}
-            className="bg-[#2eb8b8] px-4 py-2 rounded-xl border border-red-100"
+            className={`${
+              isWeb
+                ? "bg-[#2eb8b8] px-4 py-2 rounded-xl border border-red-100"
+                : "bg-[#2eb8b8] px-2 py-2 rounded-xl border border-red-100 ml-4"
+            }`}
           >
             <Text className="text-white font-bold">Logout</Text>
           </TouchableOpacity>
@@ -158,45 +202,82 @@ export default function choosecareHome() {
             source={{
               uri: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=2000",
             }}
-            className="flex-1 flex-row justify-center items-center px-6 py-24 "
+            className={`${
+              isWeb
+                ? "flex-1 flex-row justify-center items-center px-6 py-24 "
+                : "flex-1 px-6 py-20"
+            }`}
             resizeMode="cover"
           >
             <View
-              className={`bg-white/50 p-10 rounded-[40px] items-center justify-center border border-white/40 shadow-2xl ${
-                isWeb ? "w-[650px] h-[300px]" : "w-full"
+              className={`${
+                isWeb
+                  ? "w-[650px] h-[300px] bg-white/50 p-10 rounded-[40px] items-center justify-center border border-white/40 shadow-2xl "
+                  : "w-full bg-white/50 p-5 rounded-[40px] items-center justify-center border border-white/40 shadow-2xl mb-8 "
               }`}
               style={{ backdropFilter: isWeb ? "blur(5px)" : "none" }}
             >
-              <Text className="text-3xl font-bold text-slate-900 leading-tight mb-6">
+              <Text
+                className={`${
+                  isWeb
+                    ? "text-3xl font-bold text-slate-900 leading-tight mb-6"
+                    : "text-xl font-bold text-slate-900 leading-tight mb-4"
+                }`}
+              >
                 Welcome to a choosecare{"\n"}
                 <Text className="text-[#2eb8b8]">
                   place where safety meets responsibility.
                 </Text>
               </Text>
 
-              <Text className="text-lg text-slate-600 mb-8 leading-relaxed">
+              <Text
+                className={`${
+                  isWeb
+                    ? "text-lg text-slate-600 mb-8 leading-relaxed"
+                    : " text-slate-600  leading-relaxed"
+                }`}
+              >
                 Choose your doctor today,Embrace a world of comprehensive
                 healthcare where your well-being takes center stage. At
                 choosecare, we're dedicated to providing you with personalized
                 medical services.
               </Text>
             </View>
-            <View className="flex-row">
+
+            <View className={`${isWeb ? "flex-row" : ""}`}>
               <View
-                className={`bg-[#ccf2ff]/70 p-10 rounded-[40px] border border-white/40 shadow-2xl  ${
-                  isWeb ? "w-[300px] h-[300px] m-8" : "w-full"
+                className={` ${
+                  isWeb
+                    ? "w-[300px] h-[300px] m-8 bg-[#ccf2ff]/70 p-10 rounded-[40px] border border-white/40 shadow-2xl "
+                    : "w-full bg-[#ccf2ff]/70 p-5 rounded-[40px] border border-white/40 shadow-2xl mb-8 "
                 }`}
                 style={{ backdropFilter: isWeb ? "blur(5px)" : "none" }}
               >
-                <Text className="text-xl font-bold text-slate-900 leading-tight mb-6">
+                <Text
+                  className={`${
+                    isWeb
+                      ? "text-xl font-bold text-slate-900 leading-tight mb-6"
+                      : " text-xl font-bold text-slate-900 leading-tight "
+                  }`}
+                >
                   Preserving Lives,Shaping a Safer Tomorrown{"\n"}
                 </Text>
-                <Text className="font-semibold text-slate-700 leading-tight mb-6">
+                <Text
+                  className={`${
+                    isWeb
+                      ? "font-semibold text-slate-700 leading-tight mb-6"
+                      : "font-semibold text-slate-700 leading-tight"
+                  }`}
+                >
                   Search for your required doctors and book appointment now
                   {"\n"}
                 </Text>
                 <TouchableOpacity
-                  className="bg-[#2eb8b8] p-2 w-2/3 rounded-lg flex-row"
+                  className={`${
+                    isWeb
+                      ? "bg-[#2eb8b8] p-2 w-2/3 rounded-lg flex-row"
+                      : "bg-[#2eb8b8] p-2 w-1/2 rounded-lg flex-row"
+                  }`}
                   onPress={handlehospitallist}
                 >
                   <Text className="font-semibold text-white pr-2">
@@ -212,8 +293,10 @@ export default function choosecareHome() {
               </View>
 
               <View
-                className={`bg-[#ccf2ff]/70 p-4 rounded-[40px] border border-white/40 shadow-2xl  ${
-                  isWeb ? "w-[300px] h-[300px] m-8" : "w-full"
+                className={` ${
+                  isWeb
+                    ? "w-[300px] h-[300px] m-8 bg-[#fff]/70 p-4 rounded-[40px] border border-white/40 shadow-2xl "
+                    : "w-full bg-[#fff]/70 p-6 rounded-[40px] border border-white/40 shadow-2xl "
                 }`}
               >
                 <ImageBackground
@@ -438,8 +521,10 @@ export default function choosecareHome() {
             </View>
           )}
           <View
-            className={`px-10 ${
-              isWeb ? "flex-row justify-evenly flex-wrap" : "flex-col"
+            className={` ${
+              isWeb
+                ? "flex-row justify-evenly flex-wrap px-10"
+                : "flex-col px-4"
             }`}
           >
             <View
@@ -448,23 +533,29 @@ export default function choosecareHome() {
               }`}
             >
               <View>
-                <Text className="font-bold text-gray-900 mb-4 text-base">
-                  Community
-                </Text>
-                {["Doctors", "FAQs", "Team", "Blog", "Services"].map((link) => (
-                  <TouchableOpacity key={link} onPress={() => toggleInfo(link)}>
-                    <Text className="text-gray-600 mb-3 text-sm hover:text-[#2eb8b8]">
-                      {link}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                <View>
+                  <Text className="font-bold text-gray-900 mb-4 mr-2 text-base">
+                    Community
+                  </Text>
+                  {["Doctors", "FAQs", "Team", "Blog", "Services"].map(
+                    (link) => (
+                      <TouchableOpacity
+                        key={link}
+                        onPress={() => toggleInfo(link)}
+                      >
+                        <Text className="text-gray-600 mb-3 text-sm hover:text-[#2eb8b8]">
+                          {link}
+                        </Text>
+                      </TouchableOpacity>
+                    )
+                  )}
+                </View>
               </View>
-
               <View>
                 <Text className="font-bold text-gray-900 mb-4 text-base">
                   About Us
                 </Text>
-                {["Help & Support", "Careers", "Education", "Appointments"].map(
+                {["Support", "Careers", "Education", "Appointments"].map(
                   (link) => (
                     <TouchableOpacity
                       key={link}
@@ -477,11 +568,12 @@ export default function choosecareHome() {
                   )
                 )}
               </View>
-              <View>
+
+              <View className={`${isWeb ? "" : "mr-4"}`}>
                 <Text className="font-bold text-gray-900 mb-4 text-base">
                   Legal
                 </Text>
-                {["Terms & Conditions", "Cookie Policy", "Privacy Policy"].map(
+                {["Conditions", "Cookie Policy", "Privacy Policy"].map(
                   (link) => (
                     <TouchableOpacity
                       key={link}
@@ -499,7 +591,7 @@ export default function choosecareHome() {
                 <Text className="font-bold text-gray-900 mb-4 text-base">
                   Social Media
                 </Text>
-                <View className="flex-row gap-x-5">
+                <View className={`${isWeb ? "flex-row gap-x-5" : "gap-4"}`}>
                   <TouchableOpacity
                     onPress={() => openSocialLink("https://linkedin.com")}
                   >
@@ -528,9 +620,15 @@ export default function choosecareHome() {
             </View>
           </View>
 
-          <View className="mt-12 border-t bg-[#fff] border-gray-300 pt-10 pb-10 items-center">
+          <View
+            className={`${
+              isWeb
+                ? "mt-12 border-t bg-[#fff] border-gray-300 pt-10 pb-10 items-center"
+                : "mt-12 border-t bg-[#fff] border-gray-300 p-8  items-center"
+            }`}
+          >
             <View className={`items-center ${isWeb ? "flex-row" : "flex-col"}`}>
-              <Text className="text-xl font-bold text-gray-700 mr-8">
+              <Text className="text-xl font-bold text-gray-700 mr-8 mb-5">
                 For better experience, download the app now
               </Text>
               <View className="flex-row gap-x-4">
