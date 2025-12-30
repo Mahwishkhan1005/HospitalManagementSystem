@@ -326,8 +326,8 @@ export default function Index() {
                 {isVerifyingOtp
                   ? "Verify OTP"
                   : isRegistering
-                  ? "Register"
-                  : "Login"}
+                    ? "Register"
+                    : "Login"}
               </Text>
               <ScrollView showsVerticalScrollIndicator={false}>
                 {isVerifyingOtp ? (
