@@ -1,14 +1,15 @@
-import React, { Component } from "react";
-import { Text, View } from "react-native";
+import { Stack } from "expo-router";
+import React from "react";
 
-export class _layout extends Component {
-  render() {
-    return (
-      <View>
-        <Text> textInComponent </Text>
-      </View>
-    );
-  }
+const _layout =() => {
+ 
+ return (
+  <Stack>
+    <Stack.Screen name="hospitalhome" options={{headerShown:false}}/>
+  </Stack>
+  );
+
 }
+
 
 export default _layout;

@@ -91,7 +91,7 @@ export default function Index() {
     if (role === "USER") router.replace("/(patients)/patienthome");
     else if (role === "ADMIN") router.replace("/(superAdmin)/adminhome");
     else if (role === "RECEIPTIOINIST")
-      router.replace("/(receptionist)/receptionisthome");
+      router.replace("/receptionist");
     else router.replace("/(hospital)/hospitalhome");
   };
 
