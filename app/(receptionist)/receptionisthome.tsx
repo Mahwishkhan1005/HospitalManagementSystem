@@ -1,10 +1,19 @@
-import { FontAwesome } from "@expo/vector-icons";
+import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { FlatList, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  FlatList,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
+/* -------------------- DATA -------------------- */
 const APPOINTMENTS = [
   {
     id: "BK-1001",
@@ -58,22 +67,24 @@ const APPOINTMENTS = [
   },
 ];
 
+/* -------------------- COMPONENT -------------------- */
 const ReceptionistHome = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedDate, setSelectedDate] = useState("All"); // 1. State for date filter
+  const [selectedDate, setSelectedDate] = useState("All");
   const isWeb = Platform.OS === "web";
 
-  // 2. Generate list of unique dates for the filter bar
   const uniqueDates = useMemo(() => {
-    const dates = APPOINTMENTS.map(item => item.date);
+    const dates = APPOINTMENTS.map((item) => item.date);
     return ["All", ...new Set(dates)];
   }, []);
 
-  // 3. Filter logic for both Search and Date
   const filteredAppointments = useMemo(() => {
     return APPOINTMENTS.filter((item) => {
-      const matchesSearch = item.patientName.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesDate = selectedDate === "All" || item.date === selectedDate;
+      const matchesSearch = item.patientName
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      const matchesDate =
+        selectedDate === "All" || item.date === selectedDate;
       return matchesSearch && matchesDate;
     });
   }, [searchQuery, selectedDate]);
@@ -87,93 +98,157 @@ const ReceptionistHome = () => {
     }
   };
 
-  const renderAppointmentItem = ({ item }: { item: typeof APPOINTMENTS[0] }) => (
-    <View className="bg-white m-3 p-4 rounded-2xl shadow-sm border border-gray-100">
-      <View className="flex-row justify-between items-start mb-2">
-        <View>
-          <Text className="text-xs font-bold text-teal-600 mb-1">{item.id}</Text>
-          <Text className="text-lg font-bold text-gray-800">{item.patientName}</Text>
-        </View>
-        <View className="bg-teal-50 px-2 py-1 rounded-md">
-          <Text className="text-[10px] font-bold text-teal-700">{item.timeSlot}</Text>
-        </View>
-      </View>
+  /* -------------------- CARD -------------------- */
+  const renderAppointmentItem = ({
+    item,
+  }: {
+    item: typeof APPOINTMENTS[0];
+  }) => (
+    <View className="bg-white mx-3 my-2 rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+      {/* Accent */}
+      <View className="h-1 bg-teal-500" />
 
-      <View className="flex-row items-center mb-2">
-        <FontAwesome name="calendar" size={12} color="#666" />
-        <Text className="ml-2 text-gray-600 text-xs">{item.date}</Text>
-      </View>
+      <View className="p-4 mt-2">
+        <View className="flex-row justify-between items-start">
+          <View className="flex-row items-center">
+            {/* Avatar */}
+            <View className="w-11 h-11 rounded-full bg-teal-100 items-center justify-center">
+              <Ionicons name="person-outline" size={20} color="#0d9488" />
+            </View>
 
-      <View className="border-t border-gray-50 my-2 pt-2">
-        <View className="flex-row justify-between mb-1">
-          <Text className="text-xs text-gray-400">Illness:</Text>
-          <Text className="text-xs font-medium text-gray-700">{item.illness}</Text>
+            <View className="ml-3">
+              <Text className="text-lg font-bold text-gray-800">
+                {item.patientName}
+              </Text>
+              <Text className="text-[14px] text-gray-400">
+                {item.id}  {item.date}
+              </Text>
+            </View>
+          </View>
+
+          <View className="bg-teal-50 px-3 py-1 rounded-full">
+            <Text className="text-[10px] font-bold text-teal-700">
+              {item.timeSlot}
+            </Text>
+          </View>
         </View>
-        <View className="flex-row justify-between mb-1">
-          <Text className="text-xs text-gray-400">Doctor:</Text>
-          <Text className="text-xs font-medium text-gray-700">{item.doctorName} ({item.doctorSpecialisation})</Text>
-        </View>
-        <View className="flex-row justify-between">
-          <Text className="text-xs text-gray-400">Address:</Text>
-          <Text className="text-xs font-medium text-gray-700 text-right flex-1 ml-4" numberOfLines={1}>
-            {item.address}
-          </Text>
+
+        <View className="mt-4 space-y-2">
+          <View className="flex-row items-center">
+            <Ionicons name="medkit-outline" size={14} color="#6b7280" />
+            <Text className="ml-2 text-[11.5px] font-medium text-gray-600">
+              {item.illness}
+            </Text>
+          </View>
+
+          <View className="flex-row items-center">
+            <Ionicons name="medical-outline" size={14} color="#6b7280" />
+            <Text className="ml-2 text-[11.5px] font-medium text-gray-600">
+              {item.doctorName} 
+            </Text>
+          </View>
+
+          <View className="flex-row items-center">
+            <Ionicons name="medical-outline" size={14} color="#6b7280" />
+            <Text className="ml-2 text-[11.5px] font-medium text-gray-600">
+             ({item.doctorSpecialisation})
+            </Text>
+          </View>
+
+          <View className="flex-row items-start">
+            <Ionicons name="location-outline" size={14} color="#6b7280" />
+            <Text
+              className="ml-2 text-[11.5] font-medium text-gray-600 flex-1"
+              numberOfLines={1}
+            >
+              {item.address}
+            </Text>
+          </View>
         </View>
       </View>
     </View>
   );
 
+  /* -------------------- UI -------------------- */
   return (
     <View className="flex-1 bg-gray-50">
+      {/* HEADER */}
       <LinearGradient
-        colors={["rgba(177, 235, 252, 0.86)", "rgba(90, 250, 215, 0.86)"]}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-        className={`${isWeb ? "px-10 py-5" : "px-5 pt-10 pb-4"} rounded-b-[25px] shadow-md`}
+        colors={["rgba(177,235,252,0.86)", "rgba(90,250,215,0.86)"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        className={`${isWeb ? "px-10 py-5" : "px-5 pt-10 pb-4"} rounded-b-[28px] shadow-lg`}
       >
-        <View className="flex-row justify-between items-center mb-3">
+        <View className="flex-row justify-between items-center mb-4 mt-4">
           <View className="flex-row items-center">
-            <FontAwesome name="heartbeat" size={isWeb ? 28 : 22} color="#2eb8b8" />
-            <Text className={`${isWeb ? "text-2xl" : "text-xl"} ml-2 font-bold text-gray-800 tracking-tight`}>WECARE</Text>
+            <FontAwesome name="heartbeat" size={26} color="#0d9488" />
+            <Text className="ml-2 text-2xl font-bold text-gray-800">
+              WECARE
+            </Text>
           </View>
-          <TouchableOpacity onPress={handleLogout} className="flex-row items-center bg-white/40 px-3 py-1.5 rounded-full border border-white/30">
-            <FontAwesome name="sign-out" size={16} color="#444" />
-            <Text className="ml-2 text-gray-800 font-semibold text-xs uppercase">Logout</Text>
-          </TouchableOpacity>
+
+          <View className="flex-row gap-3">
+            <TouchableOpacity
+              onPress={() => router.navigate("/receptionist")}
+              className="bg-white/40 p-2 rounded-full"
+            >
+              <Ionicons name="home" size={18} color="#374151" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleLogout}
+              className="flex-row items-center bg-white/40 px-3 py-1.5 rounded-full"
+            >
+              <FontAwesome name="sign-out" size={14} color="#374151" />
+              <Text className="ml-2 text-xs font-semibold text-gray-700">
+                Logout
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        <View className={`${isWeb ? "flex-row justify-between items-end" : "flex-col"}`}>
-          <View className={isWeb ? "flex-1" : "mb-3"}>
-            <Text className={`${isWeb ? "text-lg" : "text-base"} font-bold text-gray-700`}>Receptionist Desk</Text>
-            <Text className="italic text-gray-600 text-[11px] font-medium leading-tight">"Efficiency is the foundation of compassionate care."</Text>
+        <View className={`${isWeb ? "flex-row justify-between items-end" : ""}`}>
+          <View>
+            <Text className="text-lg font-bold text-gray-700">
+              Receptionist Desk
+            </Text>
+            <Text className="text-[11px] italic text-gray-600">
+              Manage daily appointments efficiently
+            </Text>
           </View>
-          <View className={`${isWeb ? "w-1/3" : "w-full"} flex-row items-center bg-white/70 rounded-xl px-3 border border-white/20 shadow-sm`}>
-            <FontAwesome name="search" size={14} color="#666" />
+
+          <View className={`${isWeb ? "w-1/3" : "w-full"} flex-row items-center bg-white/80 mt-3 rounded-xl px-3`}>
+            <Ionicons name="search" size={14} color="#6b7280" />
             <TextInput
               placeholder="Search patients..."
-              placeholderTextColor="#888"
+              placeholderTextColor="#9ca3af"
               value={searchQuery}
               onChangeText={setSearchQuery}
-              className={`flex-1 px-3 py-2 text-sm ${isWeb ? "outline-none" : ""}`}
+              className="flex-1 px-3 py-2 text-sm"
             />
           </View>
         </View>
       </LinearGradient>
 
-      {/* 4. Date Filter Bar */}
+      {/* DATE FILTER */}
       <View className="mt-4 px-3">
-        <Text className="text-gray-500 text-[10px] font-bold uppercase mb-2 ml-1">Filter by Date</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
+        
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {uniqueDates.map((date) => (
             <TouchableOpacity
               key={date}
               onPress={() => setSelectedDate(date)}
               className={`mr-2 px-4 py-2 rounded-full border ${
-                selectedDate === date 
-                  ? "bg-teal-500 border-teal-600" 
+                selectedDate === date
+                  ? "bg-teal-500 border-teal-600"
                   : "bg-white border-gray-200"
               }`}
             >
-              <Text className={`text-xs font-semibold ${selectedDate === date ? "text-white" : "text-gray-600"}`}>
+              <Text
+                className={`text-xs font-semibold ${
+                  selectedDate === date ? "text-white" : "text-gray-600"
+                }`}
+              >
                 {date}
               </Text>
             </TouchableOpacity>
@@ -181,23 +256,29 @@ const ReceptionistHome = () => {
         </ScrollView>
       </View>
 
-      {/* Main Content */}
-      <View className="flex-1 px-2 mt-2">
-        <View className="flex-row justify-between items-center px-3 pt-2 pb-2">
-          <Text className="text-gray-800 font-bold text-lg">
-            {selectedDate === "All" ? "All Appointments" : `Appointments for ${selectedDate}`}
+      {/* LIST */}
+      <View className="flex-1 mt-2">
+        <View className="flex-row justify-between px-5 pb-2">
+          <Text className="text-lg font-bold text-gray-800">
+            {selectedDate === "All"
+              ? "All Appointments"
+              : `Appointments for ${selectedDate}`}
           </Text>
-          <Text className="text-gray-400 text-xs">{filteredAppointments.length} found</Text>
+          <Text className="text-xs text-gray-400">
+            {filteredAppointments.length} found
+          </Text>
         </View>
-        
+
         <FlatList
           data={filteredAppointments}
           keyExtractor={(item) => item.id}
           renderItem={renderAppointmentItem}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={{ paddingBottom: 30 }}
           ListEmptyComponent={
-            <View className="items-center mt-10">
-              <Text className="text-gray-400 italic">No appointments found for this selection.</Text>
+            <View className="items-center mt-16">
+              <Text className="text-gray-400 italic">
+                No appointments found
+              </Text>
             </View>
           }
         />

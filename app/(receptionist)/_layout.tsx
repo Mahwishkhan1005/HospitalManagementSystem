@@ -26,6 +26,7 @@ const _layout =() => {
       name="receptionDoctor"
       options={{
         tabBarLabel: "Doctors",
+        headerShown: false,
         tabBarIcon: ({ color, size }) => (
           <Ionicons name="medkit" size={size} color={color} />
         ),
