@@ -24,6 +24,7 @@ export default function choosecareHome() {
     content: string;
   } | null>(null);
   const [userQuestion, setUserQuestion] = useState("");
+
   const handleLogout = () => {
     const performLogout = async () => {
       try {
@@ -126,7 +127,7 @@ export default function choosecareHome() {
         className={`${
           isWeb
             ? "flex-row bg-white/10 items-center justify-between px-6 py-4 border-b border-gray-100 shadow-sm"
-            : "flex-row"
+            : "flex-row justify-between px-4"
         }`}
       >
         <View
@@ -161,28 +162,13 @@ export default function choosecareHome() {
               : "flex-row items-center space-x-8 mt-8 m-2"
           }`}
         >
-          <View
+          {/* <View
             className={`${
               isWeb
                 ? "flex-row items-center gap-x-2"
                 : "flex-row items-center gap-x-4"
             }`}
-          >
-            <View
-              className={`${
-                isWeb
-                  ? "flex-row items-center bg-white h-10 rounded-xl px-6 w-60 lg:w-64"
-                  : "flex-row items-center bg-white h-[35px] ml-2 rounded-xl px-4 w-32 "
-              }`}
-            >
-              <FontAwesome name="search" size={16} color="#666" />
-              <TextInput
-                placeholder="Search..."
-                className="flex-1 ml-2 text-sm outline-none"
-                placeholderTextColor="#999"
-              />
-            </View>
-          </View>
+          ></View> */}
           <TouchableOpacity
             onPress={handleLogout}
             className={`${
