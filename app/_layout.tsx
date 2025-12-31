@@ -9,6 +9,11 @@ export default function RootLayout() {
       <Stack.Screen name="(patients)" options={{ headerShown: false }} />
       <Stack.Screen name="(receptionist)" options={{ headerShown: false }} />
       <Stack.Screen name="(superAdmin)" options={{ headerShown: false }} />
+      <Stack.Screen name="receptionist" options={{ headerShown: false }} />
+
+      <Stack.Screen name="extrafiles" options={{ headerShown: false }} />
+      {/* <Stack.Screen name="hospitals" options={{ headerShown: false }} />
+      <Stack.Screen name="doctors_details" options={{ headerShown: false }} /> */}
     </Stack>
   );
 }

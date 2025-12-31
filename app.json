@@ -40,6 +40,15 @@
         }
       ],
       "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraMavenRepo": "https://jitpack.io"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
