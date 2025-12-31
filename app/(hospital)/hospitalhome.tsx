@@ -136,7 +136,7 @@ const HospitalHome = () => {
               </View>
               <View className="ml-3">
                 <Text className="text-lg font-bold text-gray-800">{item.patientName}</Text>
-                <Text className="text-[11px] text-gray-400 font-medium">APPT-{item.appointmentId}</Text>
+                <Text className="text-[11px] text-gray-400 font-medium">Appointment Number : {item.appointmentId}</Text>
               </View>
             </View>
             <View className={`${isCompleted ? 'bg-green-100' : 'bg-orange-100'} px-3 py-1 rounded-full`}>
