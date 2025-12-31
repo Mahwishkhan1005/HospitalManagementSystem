@@ -2,15 +2,15 @@ import { FontAwesome, Ionicons, MaterialCommunityIcons } from "@expo/vector-icon
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { jwtDecode } from "jwt-decode"; // Ensure jwt-decode is installed
+import { jwtDecode } from "jwt-decode";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
+  Image,
   Platform,
   ScrollView,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -23,7 +23,6 @@ const ReceptionistLanding = () => {
   const isWeb = Platform.OS === "web";
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  // 1. Get role from the stored token
   useEffect(() => {
     const fetchRole = async () => {
       try {
@@ -49,11 +48,6 @@ const ReceptionistLanding = () => {
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem("AccessToken");
-      if (isWeb) {
-        window.alert("Logged out successfully");
-      } else {
-        Alert.alert("Logout", "You have been logged out.");
-      }
       router.replace("/");
     } catch (e) {
       console.error("Logout failed", e);
@@ -97,15 +91,8 @@ const ReceptionistLanding = () => {
                 Your Digital Hub for <Text className="text-teal-600">Patient Care</Text>
               </Text>
 
-              <Text className="text-gray-500 leading-relaxed mb-8 text-base max-w-md">
-                Efficiency meets empathy. {userRole === 'DOCTOR' 
-                  ? "Access your schedule and manage patient consultations seamlessly." 
-                  : "Manage appointments, coordinate with doctors, and ensure patient satisfaction."}
-              </Text>
-
               <View className="gap-y-4">
-                
-                {/* 2. RECEPTIONIST ONLY BUTTONS */}
+                {/* ROLE BASED BUTTONS */}
                 {(userRole === "RECEIPTIOINIST" || userRole === "RECEPTIONIST") && (
                   <View className="flex-row flex-wrap gap-4">
                     <TouchableOpacity
@@ -126,22 +113,48 @@ const ReceptionistLanding = () => {
                   </View>
                 )}
 
-                {/* 3. DOCTOR ONLY BUTTON */}
                 {userRole === "DOCTOR" && (
                   <TouchableOpacity
                     onPress={() => router.push("/(hospital)/hospitalhome")}
-                    className="flex-row items-center bg-white border border-gray-200 px-6 py-4 rounded-2xl shadow-sm"
+                    className="flex-row items-center bg-teal-600 px-6 py-4 rounded-2xl shadow-lg"
                   >
-                    <View className="bg-emerald-100 p-2 rounded-xl">
-                      <MaterialCommunityIcons name="stethoscope" size={22} color="#059669" />
-                    </View>
+                    <MaterialCommunityIcons name="stethoscope" size={22} color="white" />
                     <View className="ml-4">
-                      <Text className="text-gray-800 font-bold">Doctor's Portal</Text>
-                      <Text className="text-gray-500 text-xs">Hii Doctor, view appointments here →</Text>
+                        <Text className="text-white font-bold">Doctor's Portal</Text>
+                        <Text className="text-teal-100 text-xs italic">View your appointments here →</Text>
                     </View>
                   </TouchableOpacity>
                 )}
 
+                {/* --- IMAGE CARD BELOW BUTTONS --- */}
+                <View
+  className={`mt-8 bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100
+  ${isWeb ? "max-w-30 min-h-[520px]" : "max-w-md"}`}
+>
+
+                   <Image
+  source={require("../assets/images/hospital2.png")}
+  resizeMode="cover"
+  style={{
+    width: "100%",
+    height: Platform.OS === "web" ? 380 :200,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  }}
+/>
+
+                   <View className="p-5">
+                      <View className="flex-row justify-between items-center mb-2">
+                        <Text className="text-lg font-bold text-slate-800">Main Medical Wing</Text>
+                        <View className="bg-emerald-100 px-2 py-1 rounded">
+                           <Text className="text-[10px] font-bold text-emerald-700 uppercase">Modern Facility</Text>
+                        </View>
+                      </View>
+                      <Text className="text-gray-500 text-xs leading-5">
+                        Experience world-class healthcare with our state-of-the-art diagnostic equipment and 24/7 emergency support.
+                      </Text>
+                   </View>
+                </View>
               </View>
             </View>
 
@@ -165,6 +178,18 @@ const ReceptionistLanding = () => {
                     <Text className="ml-3 text-slate-700 font-medium">{feature}</Text>
                   </View>
                 ))}
+
+                <View className="mt-4 pt-6 border-t border-gray-100 flex-row items-center justify-between">
+                  <View>
+                    <Text className="text-2xl font-black text-teal-600">5K+</Text>
+                    <Text className="text-[10px] text-gray-400 font-bold uppercase">Patients Served</Text>
+                  </View>
+                  <View className="h-8 w-[1px] bg-gray-200" />
+                  <View>
+                    <Text className="text-2xl font-black text-teal-600">99%</Text>
+                    <Text className="text-[10px] text-gray-400 font-bold uppercase">Satisfaction</Text>
+                  </View>
+                </View>
               </View>
             </View>
           </View>

@@ -23,7 +23,7 @@ interface DecodedToken {
   [key: string]: any;
 }
 
-const API_BASE_URL = "http://192.168.0.231:8080/api/auth";
+const API_BASE_URL = "http://192.168.0.236:8080/api/auth";
 
 export default function Index() {
   const [formData, setFormData] = useState({

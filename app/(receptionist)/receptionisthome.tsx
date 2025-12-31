@@ -30,7 +30,7 @@ const ReceptionistHome = () => {
   const [actionLoading, setActionLoading] = useState(false);
 
   const isWeb = Platform.OS === "web";
-  const BASE_URL = "http://192.168.0.217:8081/api/reception/appointments";
+  const BASE_URL = "http://192.168.0.222:8081/api/reception/appointments";
 
   useEffect(() => {
     fetchAppointments();
