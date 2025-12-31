@@ -58,12 +58,12 @@ export default function Index() {
   useEffect(() => {
     let interval: number;
     if (timer > 0) {
-      setCanResend(false); // Ensure button is disabled while counting
+      setCanResend(false);
       interval = window.setInterval(() => {
         setTimer((prev) => prev - 1);
       }, 1000);
     } else {
-      setCanResend(true); // ENABLE the button when timer hits 0
+      setCanResend(true);
     }
     return () => window.clearInterval(interval);
   }, [timer]);
