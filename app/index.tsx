@@ -23,7 +23,7 @@ interface DecodedToken {
   [key: string]: any;
 }
 
-const API_BASE_URL = "http://192.168.0.231:8080/api/auth";
+const API_BASE_URL = "http://192.168.0.236:8080/api/auth";
 
 export default function Index() {
   const [formData, setFormData] = useState({
@@ -52,14 +52,18 @@ export default function Index() {
   const otpInputRef = useRef<TextInput>(null);
   const forgotOtpRef = useRef<TextInput>(null);
 
+  const [canResend, setCanResend] = useState(false);
   const isWeb = Platform.OS === "web";
 
   useEffect(() => {
     let interval: number;
     if (timer > 0) {
+      setCanResend(false); // Ensure button is disabled while counting
       interval = window.setInterval(() => {
         setTimer((prev) => prev - 1);
       }, 1000);
+    } else {
+      setCanResend(true); // ENABLE the button when timer hits 0
     }
     return () => window.clearInterval(interval);
   }, [timer]);
@@ -111,6 +115,8 @@ export default function Index() {
             "Verification Required",
             "Please verify your email first."
           );
+          window.alert("Please verify your email first.");
+
           setIsVerifyingOtp(true);
           return;
         }
@@ -120,12 +126,42 @@ export default function Index() {
       }
     } catch (error: any) {
       Alert.alert("Login Failed", "Invalid credentials");
+      window.alert("Invalid credentials");
+    }
+  };
+  const handleResendSignUpOtp = async () => {
+    const currentEmail = isVerifyingOtp ? formData.email : forgotEmail;
+    if (!canResend) return;
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/resend-otp?email=${currentEmail}`,
+        {
+          username: formData.name,
+          email: formData.email,
+          phnno: formData.number,
+          password: formData.password,
+          role: "USER",
+        }
+      );
+
+      if (response.status === 200 || response.status === 201) {
+        setTimer(60);
+        setCanResend(false);
+        if (!isVerifyingOtp && !showForgotModal) {
+          setIsVerifyingOtp(true);
+        }
+        Alert.alert("Success", "A new OTP has been sent to your email.");
+      }
+    } catch (error: any) {
+      Alert.alert("Error", "Failed to resend OTP. Please try again later.");
     }
   };
 
   const handleRegister = async () => {
     if (!formData.name || !formData.email || !formData.password) {
       Alert.alert("Error", "Please fill required fields");
+      window.alert("Please fill required fields");
       return;
     }
     try {
@@ -139,14 +175,16 @@ export default function Index() {
       if (response.status === 201 || response.status === 200) {
         setIsVerifyingOtp(true);
         setTimer(60);
+        setCanResend(false);
       }
     } catch (error: any) {
       Alert.alert("Error", "Registration failed");
+      window.alert("Registration failed");
     }
   };
 
   const handleVerifyOtp = async () => {
-    const BASE_URL = "http://192.168.0.231:8080";
+    const BASE_URL = "http://192.168.0.236:8080";
 
     const currentEmail = isVerifyingOtp ? formData.email : forgotEmail;
     const currentOtp = isVerifyingOtp ? formData.otp : resetData.otp;
@@ -196,7 +234,7 @@ export default function Index() {
 
     try {
       const response = await axios.post(
-        `http://192.168.0.231:8080/auth/forgot-password?email=${forgotEmail}`
+        `http://192.168.0.236:8080/auth/forgot-password?email=${forgotEmail}`
       );
 
       if (response.status === 200) {
@@ -213,7 +251,7 @@ export default function Index() {
     }
   };
   const handleResetPasswordSubmit = async () => {
-    const BASE_URL = "http://192.168.0.231:8080";
+    const BASE_URL = "http://192.168.0.236:8080";
 
     try {
       if (!isOtpVerified) {
@@ -326,8 +364,8 @@ export default function Index() {
                 {isVerifyingOtp
                   ? "Verify OTP"
                   : isRegistering
-                    ? "Register"
-                    : "Login"}
+                  ? "Register"
+                  : "Login"}
               </Text>
               <ScrollView showsVerticalScrollIndicator={false}>
                 {isVerifyingOtp ? (
@@ -341,6 +379,23 @@ export default function Index() {
                         setFormData({ ...formData, otp: t })
                       }
                     />
+
+                    <View className="flex-row justify-between items-center mb-4 px-1">
+                      <Text className="text-xs text-gray-500">
+                        Didn't receive code?
+                      </Text>
+                      {timer > 0 ? (
+                        <Text className="text-xs text-gray-400 italic">
+                          Resend in {timer}s
+                        </Text>
+                      ) : (
+                        <TouchableOpacity onPress={handleResendSignUpOtp}>
+                          <Text className="text-xs font-bold text-[#2eb8b8]">
+                            RESEND OTP
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
                     <TouchableOpacity
                       onPress={handleVerifyOtp}
                       className="bg-[#2eb8b8] p-3 rounded-xl items-center"
