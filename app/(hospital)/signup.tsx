@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -26,7 +25,6 @@ import '../globals.css';
 const API_BASE_URL = 'http://192.168.0.133:8080/api';
 const HOSPITAL_API = `${API_BASE_URL}/hospitals`;
 const DEPARTMENT_API = `${API_BASE_URL}/departments`;
-const DOCTOR_API = `${API_BASE_URL}/doctors`;
 const SIGNUP_API = 'http://192.168.0.231:8080/admin/signup';
 
 /* -------------------- HOSPITAL CARD -------------------- */
@@ -66,7 +64,7 @@ const HospitalCard = ({ item, onPress, onEdit, onDelete }) => {
 
         {/* Avatar/Image */}
         <View className="items-center mt-2">
-            <View className="w-16 h-16 rounded-2xl overflow-hidden bg-green-200">
+            <View className="w-16 h-16 rounded-2xl overflow-hidden bg-blue-100">
               <Image
                 source={{
                   uri: item.picture
@@ -122,6 +120,47 @@ const HospitalCard = ({ item, onPress, onEdit, onDelete }) => {
   );
 }
 
+/* -------------------- DOCTOR CARD (GRID VIEW - 3 PER ROW) -------------------- */
+
+const DoctorCard = ({ item, onPress }) => (
+  <View className="w-1/3 px-1.5 mb-3">
+    <View className="bg-white rounded-xl shadow-sm p-2 border border-gray-100">
+      <View className="w-full h-24 rounded-lg bg-gray-100 overflow-hidden mb-2">
+        <Image
+          source={{ uri: item.image || 'https://i.imgur.com/default-doctor.png' }}
+          className="w-full h-full"
+          resizeMode="cover"
+        />
+      </View>
+      
+      <Text className="font-bold text-xs text-gray-900 mb-1" numberOfLines={1}>
+        {item.name}
+      </Text>
+      <Text className="text-blue-600 text-xs mb-1" numberOfLines={1}>
+        {item.speciality}
+      </Text>
+      <Text className="text-gray-500 text-xs mb-2">
+        Exp: {item.experience}
+      </Text>
+
+      <View className="flex-row space-x-1">
+        <TouchableOpacity 
+          className="flex-1 border border-gray-300 px-1 py-1 rounded"
+          onPress={() => onPress(item, 'profile')}
+        >
+          <Text className="text-gray-700 text-xs text-center">Profile</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          className="flex-1 bg-orange-500 px-1 py-1 rounded"
+          onPress={() => onPress(item, 'appointment')}
+        >
+          <Text className="text-white text-xs text-center">Book</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+);
+
 /* -------------------- ADD HOSPITAL CARD -------------------- */
 
 const AddHospitalCard = ({ onPress }) => {
@@ -133,7 +172,7 @@ const AddHospitalCard = ({ onPress }) => {
       >
         <LinearGradient
           colors={['#f0f9ff', '#e0f2fe']}
-          className="rounded-3xl p-4 shadow-xl border-2 border-dashed border-sky-300 h-full"
+          className="rounded-3xl p-4 shadow-xl border-2 border-dashed border-blue-300 h-full"
         >
           <View className="items-center justify-center h-full">
             <View className="w-16 h-16 rounded-2xl bg-blue-100 items-center justify-center mb-3">
@@ -153,62 +192,6 @@ const AddHospitalCard = ({ onPress }) => {
     </View>
   );
 };
-
-/* -------------------- DOCTOR CARD (GRID VIEW - 3 PER ROW) -------------------- */
-
-const DoctorCard = ({ item, onPress, onEdit, onDelete }) => (
-  <View className="w-40 px-2 mb-3">
-    <View className="bg-white rounded-xl shadow-sm p-2 border border-gray-100">
-      {/* Action buttons */}
-      <View className="absolute top-1 right-1 flex-row space-x-1 z-10">
-        <TouchableOpacity
-          onPress={(e) => {
-            e.stopPropagation();
-            onEdit && onEdit(item);
-          }}
-          className="bg-blue-500 w-6 h-6 rounded-full items-center justify-center"
-        >
-          <Text className="text-white text-xs">✎</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={(e) => {
-            e.stopPropagation();
-            onDelete && onDelete(item);
-          }}
-          className="bg-red-500 w-6 h-6 rounded-full items-center justify-center"
-        >
-          <Text className="text-white text-xs">✕</Text>
-        </TouchableOpacity>
-      </View>
-      
-      <View className="w-full h-24 rounded-lg bg-gray-100 overflow-hidden mb-2">
-        <Image
-          source={{ 
-            uri: item.picture || 'https://via.placeholder.com/150?text=Doctor'
-          }}
-          className="w-full h-full"
-          resizeMode="cover"
-        />
-      </View>
-      
-      <Text className="font-bold text-sm text-gray-900 mb-1" numberOfLines={1}>
-        {item.name}
-      </Text>
-      <Text className="text-blue-600 text-xs mb-1" numberOfLines={1}>
-        {item.specialization}
-      </Text>
-      <Text className="text-gray-500 text-xs mb-1">
-        Exp: {item.experience} yrs
-      </Text>
-      <Text className="text-green-600 text-xs mb-2">
-        ₹{item.fee}
-      </Text>
-
-      <View className="flex-row space-x-1">
-      </View>
-    </View>
-  </View>
-);
 
 /* -------------------- SIGNUP COMPONENT -------------------- */
 
@@ -437,15 +420,10 @@ export default function App() {
   const [filteredDepartments, setFilteredDepartments] = useState([]);
   const [signupModalVisible, setSignupModalVisible] = useState(false);
 
-  // Doctor management states
-  const [addDoctorModalVisible, setAddDoctorModalVisible] = useState(false);
-  const [editDoctorModalVisible, setEditDoctorModalVisible] = useState(false);
-  const [viewDoctorsModalVisible, setViewDoctorsModalVisible] = useState(false);
-  const [viewDoctorsDepartmentId, setViewDoctorsDepartmentId] = useState(null);
-  const [loadingDoctors, setLoadingDoctors] = useState(false);
-  const [doctors, setDoctors] = useState([]);
-  const [selectedDepartmentForDoctors, setSelectedDepartmentForDoctors] = useState(null);
-  const [uploadingDoctorImage, setUploadingDoctorImage] = useState(false);
+  // Hospital doctors data (moved up to avoid conditional hook rendering)
+  const [hospitalDoctors, setHospitalDoctors] = useState({});
+  // Locally added doctors (should only appear in View Doctors modal)
+  const [addedDoctors, setAddedDoctors] = useState({});
 
   // New hospital form state
   const [newHospital, setNewHospital] = useState({
@@ -478,6 +456,8 @@ export default function App() {
     localImage: null,
   });
 
+  // New doctor form state removed (add-doctor UI removed)
+
   // Department form states
   const [newDepartment, setNewDepartment] = useState({
     name: '',
@@ -489,36 +469,6 @@ export default function App() {
     name: '',
     description: '',
     hospitalId: '',
-  });
-
-  // Doctor form states
-  const [newDoctor, setNewDoctor] = useState({
-    name: '',
-    phone: '',
-    mail: '',
-    specialization: '',
-    experience: '',
-    fee: '',
-    education: '',
-    departmentId: '',
-    cabinNumber: '',
-    picture: null,
-    localImage: null,
-  });
-
-  const [editDoctor, setEditDoctor] = useState({
-    id: '',
-    name: '',
-    phone: '',
-    mail: '',
-    specialization: '',
-    experience: '',
-    fee: '',
-    education: '',
-    departmentId: '',
-    cabinNumber: '',
-    picture: null,
-    localImage: null,
   });
 
   // Helper functions for 3D effects
@@ -544,6 +494,10 @@ export default function App() {
     return colors[index % colors.length];
   };
 
+  const getRandomDoctorCount = () => {
+    return Math.floor(Math.random() * 20) + 5;
+  };
+
   // Load hospitals from API
   const fetchHospitals = async () => {
     try {
@@ -554,24 +508,34 @@ export default function App() {
       }
       const data = await response.json();
       console.log('Fetched hospitals:', data);
-      // For each hospital, if server doesn't return a picture, check AsyncStorage
-      // for a locally persisted picture URL for that hospital.
-      const normalizedHospitals = [];
-      for (const h of data) {
-        let picture = h.picture || null;
-        if (!picture) {
-          try {
-            const key = `hospital:${h.id}:picture`;
-            const saved = await AsyncStorage.getItem(key);
-            if (saved) picture = saved;
-          } catch (e) {
-            console.log('Error reading picture from storage', e);
+        // For each hospital, if server doesn't return a picture, check AsyncStorage
+        // for a locally persisted picture URL for that hospital.
+        const normalizedHospitals = [];
+        for (const h of data) {
+          let picture = h.picture || null;
+          if (!picture) {
+            try {
+              const key = `hospital:${h.id}:picture`;
+              const saved = await AsyncStorage.getItem(key);
+              if (saved) picture = saved;
+            } catch (e) {
+              console.log('Error reading picture from storage', e);
+            }
           }
+          normalizedHospitals.push({ ...h, picture });
         }
-        normalizedHospitals.push({ ...h, picture });
-      }
 
-      setHospitals(normalizedHospitals);
+        setHospitals(normalizedHospitals);
+      
+      // Initialize empty doctors array for each hospital
+      const doctorsData = {};
+      const addedData = {};
+      data.forEach((hospital) => {
+        doctorsData[hospital.id] = [];
+        addedData[hospital.id] = [];
+      });
+      setHospitalDoctors(doctorsData);
+      setAddedDoctors(addedData);
     } catch (error) {
       console.error('Error fetching hospitals:', error);
       Alert.alert('Error', 'Failed to fetch hospitals. Please check your connection.');
@@ -605,62 +569,6 @@ export default function App() {
       setFilteredDepartments([]);
     } finally {
       setLoadingDepartments(false);
-    }
-  };
-
-  // Load doctors for a department
-  const fetchDoctorsByDepartment = async (departmentId) => {
-    if (!departmentId) return;
-    
-    try {
-      setLoadingDoctors(true);
-      const response = await fetch(`${DOCTOR_API}/department/${departmentId}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      console.log('Fetched doctors:', data);
-      setDoctors(data);
-    } catch (error) {
-      console.error('Error fetching doctors:', error);
-      Alert.alert('Error', 'Failed to fetch doctors.');
-      setDoctors([]);
-    } finally {
-      setLoadingDoctors(false);
-    }
-  };
-
-  // Load all doctors for selected hospital (from all departments)
-  const fetchAllDoctorsForHospital = async () => {
-    if (!selectedHospital?.id) return;
-    
-    try {
-      setLoadingDoctors(true);
-      // Get all departments first
-      const deptResponse = await fetch(`${DEPARTMENT_API}/hospital/${selectedHospital.id}`);
-      if (!deptResponse.ok) {
-        throw new Error(`HTTP error! status: ${deptResponse.status}`);
-      }
-      const departments = await deptResponse.json();
-      
-      // Fetch doctors for each department
-      const allDoctors = [];
-      for (const dept of departments) {
-        const doctorResponse = await fetch(`${DOCTOR_API}/department/${dept.id}`);
-        if (doctorResponse.ok) {
-          const doctors = await doctorResponse.json();
-          allDoctors.push(...doctors);
-        }
-      }
-      
-      console.log('Fetched all doctors for hospital:', allDoctors);
-      setDoctors(allDoctors);
-    } catch (error) {
-      console.error('Error fetching all doctors:', error);
-      Alert.alert('Error', 'Failed to fetch doctors.');
-      setDoctors([]);
-    } finally {
-      setLoadingDoctors(false);
     }
   };
 
@@ -703,7 +611,7 @@ export default function App() {
   }, [search, hospitals]);
 
   // Image Picker Function
-  const pickImage = async (isEdit = false, isDoctor = false) => {
+  const pickImage = async (isEdit = false) => {
     try {
       // Request permissions
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -721,67 +629,17 @@ export default function App() {
       });
 
       if (!result.canceled) {
-        const pickedUri = result.assets[0].uri;
-        // Copy the picked image to a persistent app directory so it survives reloads
-        let imageUri = pickedUri;
-        try {
-          const filename = pickedUri.split('/').pop() || `photo_${Date.now()}.jpg`;
-          const dest = `${FileSystem.documentDirectory}${filename}`;
-          // If destination exists, append timestamp to avoid overwrite
-          const info = await FileSystem.getInfoAsync(dest);
-          const finalDest = info.exists ? `${FileSystem.documentDirectory}${Date.now()}_${filename}` : dest;
-          await FileSystem.copyAsync({ from: pickedUri, to: finalDest });
-          imageUri = finalDest;
-        } catch (fsErr) {
-          console.log('FileSystem copy failed, falling back to picked URI', fsErr);
-          imageUri = pickedUri;
-        }
-        if (isDoctor) {
-          if (isEdit) {
-            setEditDoctor(prev => ({
-              ...prev,
-              localImage: imageUri
-            }));
-            try {
-              const id = editDoctor?.id;
-              if (id) await AsyncStorage.setItem(`doctor:${id}:picture`, imageUri);
-            } catch (e) {
-              console.log('Error saving doctor image to AsyncStorage', e);
-            }
-          } else {
-            setNewDoctor(prev => ({
-              ...prev,
-              localImage: imageUri
-            }));
-            try { await AsyncStorage.setItem('unsaved:newDoctor:picture', imageUri); } catch (e) { console.log('Error saving unsaved new doctor image', e); }
-          }
+        const imageUri = result.assets[0].uri;
+        if (isEdit) {
+          setEditHospital(prev => ({
+            ...prev,
+            localImage: imageUri
+          }));
         } else {
-          if (isEdit) {
-            setEditHospital(prev => ({
-              ...prev,
-              localImage: imageUri
-            }));
-          } else {
-            setNewHospital(prev => ({
-              ...prev,
-              localImage: imageUri
-            }));
-          }
-        }
-        // Persist the picked image URI so it survives reloads
-        try {
-          if (!isDoctor) {
-            if (isEdit) {
-              const id = editHospital?.id;
-              if (id) {
-                await AsyncStorage.setItem(`hospital:${id}:picture`, imageUri);
-              }
-            } else {
-              await AsyncStorage.setItem('unsaved:newHospital:picture', imageUri);
-            }
-          }
-        } catch (e) {
-          console.log('Error saving picked image to AsyncStorage', e);
+          setNewHospital(prev => ({
+            ...prev,
+            localImage: imageUri
+          }));
         }
       }
     } catch (error) {
@@ -790,233 +648,213 @@ export default function App() {
     }
   };
 
-  // Load any unsaved new-doctor image on mount
-  useEffect(() => {
-    const loadUnsavedDoctor = async () => {
-      try {
-        const uri = await AsyncStorage.getItem('unsaved:newDoctor:picture');
-        if (uri) setNewDoctor(prev => ({ ...prev, localImage: uri }));
-      } catch (e) { console.log('Error loading unsaved new doctor picture', e); }
+  // Add new hospital - UPDATED with image upload
+const handleAddHospital = async () => {
+  if (!newHospital.name.trim() || !newHospital.address.trim() || !newHospital.city.trim()) {
+    Alert.alert('Error', 'Please fill required fields (Name, Address, City)');
+    return;
+  }
+
+  if (isAddingHospital) return;
+
+  try {
+    setIsAddingHospital(true);
+    setUploadingImage(true);
+
+    const hospitalData = {
+      name: newHospital.name,
+      address: newHospital.address,
+      city: newHospital.city,
+      numberOfDoctors: parseInt(newHospital.numberOfDoctors) || 0,
+      numberOfBeds: parseInt(newHospital.numberOfBeds) || 0,
+      ageOfHospital: parseInt(newHospital.ageOfHospital) || 0,
+      rating: parseFloat(newHospital.rating) || 0,
+      about: newHospital.about || '',
+      contactNumber: newHospital.contactNumber || '',
     };
-    loadUnsavedDoctor();
-  }, []);
 
-  // Clear unsaved new-doctor picture when add doctor modal is closed
-  useEffect(() => {
-    if (!addDoctorModalVisible) {
-      AsyncStorage.removeItem('unsaved:newDoctor:picture').catch(e => console.log('Failed removing unsaved doctor image', e));
-    }
-  }, [addDoctorModalVisible]);
+    const formData = new FormData();
 
-  // Load any unsaved new-hospital image on mount
-  useEffect(() => {
-    const loadUnsaved = async () => {
-      try {
-        const uri = await AsyncStorage.getItem('unsaved:newHospital:picture');
-        if (uri) {
-          setNewHospital(prev => ({ ...prev, localImage: uri }));
-        }
-      } catch (e) {
-        console.log('Error loading unsaved new hospital picture', e);
-      }
-    };
-    loadUnsaved();
-  }, []);
+    // ✅ VERY IMPORTANT FIX (SAME AS EDIT)
+    formData.append(
+      'hospital',
+      new Blob([JSON.stringify(hospitalData)], {
+        type: 'application/json',
+      })
+    );
 
-  // Add new hospital
-  const handleAddHospital = async () => {
-    if (!newHospital.name.trim() || !newHospital.address.trim() || !newHospital.city.trim()) {
-      Alert.alert('Error', 'Please fill required fields (Name, Address, City)');
-      return;
-    }
+    // ✅ IMAGE PART (OPTIONAL)
+    if (newHospital.localImage) {
+      const uri = newHospital.localImage;
+      const filename = uri.split('/').pop() || `photo_${Date.now()}.jpg`;
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
 
-    if (isAddingHospital) return;
-
-    try {
-      setIsAddingHospital(true);
-      setUploadingImage(true);
-
-      const hospitalData = {
-        name: newHospital.name,
-        address: newHospital.address,
-        city: newHospital.city,
-        numberOfDoctors: parseInt(newHospital.numberOfDoctors) || 0,
-        numberOfBeds: parseInt(newHospital.numberOfBeds) || 0,
-        ageOfHospital: parseInt(newHospital.ageOfHospital) || 0,
-        rating: parseFloat(newHospital.rating) || 0,
-        about: newHospital.about || '',
-        contactNumber: newHospital.contactNumber || '',
-      };
-
-      const formData = new FormData();
-      formData.append(
-        'hospital',
-        new Blob([JSON.stringify(hospitalData)], {
-          type: 'application/json',
-        })
-      );
-
-      // ✅ IMAGE PART (OPTIONAL)
-      if (newHospital.localImage) {
-        const uri = newHospital.localImage;
-        const filename = uri.split('/').pop() || `photo_${Date.now()}.jpg`;
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : 'image/jpeg';
-
-        // @ts-ignore
-        formData.append('picture', {
-          uri,
-          name: filename,
-          type,
-        });
-      }
-
-      const res = await axios.post(`${HOSPITAL_API}/add`, formData);
-      const savedHospital = {
-        ...res.data,
-        picture:
-          res.data.picture ||
-          newHospital.localImage || null,
-      };
-
-      setHospitals(prev => [savedHospital, ...prev]);
-      // Persist picture locally so it survives refreshes if server omits it
-      try {
-        if (savedHospital.picture) {
-          await AsyncStorage.setItem(`hospital:${savedHospital.id}:picture`, savedHospital.picture);
-        }
-      } catch (e) {
-        console.log('Error saving hospital picture to storage', e);
-      }
-      try { await AsyncStorage.removeItem('unsaved:newHospital:picture'); } catch (e) { console.log('Failed removing unsaved image after save', e); }
-
-      setNewHospital({
-        name: '',
-        address: '',
-        city: '',
-        numberOfDoctors: '',
-        numberOfBeds: '',
-        ageOfHospital: '',
-        rating: '',
-        about: '',
-        contactNumber: '',
-        picture: null,
-        localImage: null,
+      // @ts-ignore
+      formData.append('picture', {
+        uri,
+        name: filename,
+        type,
       });
-
-      setHospitalStep(1);
-      setAddHospitalModalVisible(false);
-      setSelectedHospital(savedHospital);
-
-      Alert.alert(
-        'Hospital Added ✅',
-        JSON.stringify(savedHospital, null, 2)
-      );
-
-    } catch (error) {
-      console.error('Add hospital failed:', error?.response?.data || error.message);
-      Alert.alert(
-        'Error',
-        error?.response?.data?.message || 'Failed to add hospital'
-      );
-    } finally {
-      setIsAddingHospital(false);
-      setUploadingImage(false);
     }
-  };
 
-  // Update hospital
-  const handleEditHospital = async () => {
-    if (!editHospital.id) return;
+    const res = await axios.post(`${HOSPITAL_API}/add`, formData);
+    const savedHospital = {
+      ...res.data,
+      picture:
+        res.data.picture ||
+        newHospital.localImage || null,
+    };
 
+
+
+    setHospitals(prev => [savedHospital, ...prev]);
+    // Persist picture locally so it survives refreshes if server omits it
     try {
-      setUploadingImage(true);
-
-      const hospitalInfoPayload = {
-        name: editHospital.name,
-        address: editHospital.address,
-        city: editHospital.city,
-        numberOfDoctors: parseInt(editHospital.numberOfDoctors) || 0,
-        numberOfBeds: parseInt(editHospital.numberOfBeds) || 0,
-        ageOfHospital: parseInt(editHospital.ageOfHospital) || 0,
-        rating: parseFloat(editHospital.rating) || 0,
-        about: editHospital.about || '',
-        contactNumber: editHospital.contactNumber || '',
-      };
-
-      const formData = new FormData();
-      formData.append(
-        'hospital',
-        new Blob([JSON.stringify(hospitalInfoPayload)], {
-          type: 'application/json',
-        })
-      );
-
-      // ✅ IMAGE PART
-      if (editHospital.localImage) {
-        const uri = editHospital.localImage;
-        const filename = uri.split('/').pop() || `photo_${Date.now()}.jpg`;
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : 'image/jpeg';
-
-        // @ts-ignore
-        formData.append('picture', {
-          uri,
-          name: filename,
-          type,
-        });
+      if (savedHospital.picture) {
+        await AsyncStorage.setItem(`hospital:${savedHospital.id}:picture`, savedHospital.picture);
       }
-
-      const res = await axios.put(
-        `${HOSPITAL_API}/update/${editHospital.id}`,
-        formData
-      );
-
-      const updatedHospital = {
-        ...res.data,
-        picture:
-          res.data.picture ||
-          editHospital.localImage ||
-          editHospital.picture ||
-          null,
-      };
-
-      setHospitals(prev =>
-        prev.map(h =>
-          h.id === editHospital.id ? updatedHospital : h
-        )
-      );
-
-      // Persist updated picture locally
-      try {
-        if (updatedHospital.picture) {
-          await AsyncStorage.setItem(`hospital:${updatedHospital.id}:picture`, updatedHospital.picture);
-        }
-      } catch (e) {
-        console.log('Error saving updated hospital picture to storage', e);
-      }
-
-      setSelectedHospital(prev =>
-          prev?.id === updatedHospital.id ? updatedHospital : prev
-        );
-
-      setEditHospitalModalVisible(false);
-
-      Alert.alert(
-        'Hospital Updated ✅',
-        JSON.stringify(updatedHospital, null, 2)
-      );
-
-    } catch (error) {
-      console.error('Update hospital failed:', error?.response?.data || error.message);
-      Alert.alert(
-        'Error',
-        error?.response?.data?.message || 'Failed to update hospital'
-      );
-    } finally {
-      setUploadingImage(false);
+    } catch (e) {
+      console.log('Error saving hospital picture to storage', e);
     }
-  };
+    setHospitalDoctors(prev => ({ ...prev, [savedHospital.id]: [] }));
+    setAddedDoctors(prev => ({ ...prev, [savedHospital.id]: [] }));
+
+    setNewHospital({
+      name: '',
+      address: '',
+      city: '',
+      numberOfDoctors: '',
+      numberOfBeds: '',
+      ageOfHospital: '',
+      rating: '',
+      about: '',
+      contactNumber: '',
+      picture: null,
+      localImage: null,
+    });
+
+    setHospitalStep(1);
+    setAddHospitalModalVisible(false);
+    setSelectedHospital(savedHospital);
+
+    Alert.alert(
+      'Hospital Added ✅',
+      JSON.stringify(savedHospital, null, 2)
+    );
+
+  } catch (error) {
+    console.error('Add hospital failed:', error?.response?.data || error.message);
+    Alert.alert(
+      'Error',
+      error?.response?.data?.message || 'Failed to add hospital'
+    );
+  } finally {
+    setIsAddingHospital(false);
+    setUploadingImage(false);
+  }
+};
+
+
+  // Update hospital - UPDATED with image upload
+const handleEditHospital = async () => {
+  if (!editHospital.id) return;
+
+  try {
+    setUploadingImage(true);
+
+    const hospitalInfoPayload = {
+      name: editHospital.name,
+      address: editHospital.address,
+      city: editHospital.city,
+      numberOfDoctors: parseInt(editHospital.numberOfDoctors) || 0,
+      numberOfBeds: parseInt(editHospital.numberOfBeds) || 0,
+      ageOfHospital: parseInt(editHospital.ageOfHospital) || 0,
+      rating: parseFloat(editHospital.rating) || 0,
+      about: editHospital.about || '',
+      contactNumber: editHospital.contactNumber || '',
+    };
+
+    const formData = new FormData();
+
+    // ✅ VERY IMPORTANT FIX
+    formData.append(
+      'hospital',
+      new Blob([JSON.stringify(hospitalInfoPayload)], {
+        type: 'application/json',
+      })
+    );
+
+    // ✅ IMAGE PART
+    if (editHospital.localImage) {
+      const uri = editHospital.localImage;
+      const filename = uri.split('/').pop() || `photo_${Date.now()}.jpg`;
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+      // @ts-ignore
+      formData.append('picture', {
+        uri,
+        name: filename,
+        type,
+      });
+    }
+
+    const res = await axios.put(
+      `${HOSPITAL_API}/update/${editHospital.id}`,
+      formData
+      // ❌ DO NOT set Content-Type manually
+    );
+
+    const updatedHospital = {
+      ...res.data,
+      picture:
+        res.data.picture ||
+        editHospital.localImage ||
+        editHospital.picture ||
+        null,
+    };
+
+
+    setHospitals(prev =>
+      prev.map(h =>
+        h.id === editHospital.id ? updatedHospital : h
+      )
+    );
+
+    // Persist updated picture locally
+    try {
+      if (updatedHospital.picture) {
+        await AsyncStorage.setItem(`hospital:${updatedHospital.id}:picture`, updatedHospital.picture);
+      }
+    } catch (e) {
+      console.log('Error saving updated hospital picture to storage', e);
+    }
+
+    setSelectedHospital(prev =>
+        prev?.id === updatedHospital.id ? updatedHospital : prev
+      );
+
+
+    setEditHospitalModalVisible(false);
+
+    Alert.alert(
+      'Hospital Updated ✅',
+      JSON.stringify(updatedHospital, null, 2)
+    );
+
+  } catch (error) {
+    console.error('Update hospital failed:', error?.response?.data || error.message);
+    Alert.alert(
+      'Error',
+      error?.response?.data?.message || 'Failed to update hospital'
+    );
+  } finally {
+    setUploadingImage(false);
+  }
+};
+
+
 
   // DELETE HOSPITAL
   const handleDeleteHospital = async (hospital) => {
@@ -1034,6 +872,18 @@ export default function App() {
       } catch (e) {
         console.log('Error removing hospital picture from storage', e);
       }
+
+      // Remove any local doctor lists for deleted hospital
+      setHospitalDoctors(prev => {
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
+      setAddedDoctors(prev => {
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
 
       if (selectedHospital?.id === id) {
         setSelectedHospital(null);
@@ -1107,227 +957,26 @@ export default function App() {
   };
 
   const handleDeleteDepartment = async (department) => {
-    const id = department?.id;
-    if (!id) return;
+  const id = department?.id;
+  if (!id) return;
 
-    try {
-      await axios.delete(`${DEPARTMENT_API}/delete/${id}`);
+  try {
+    await axios.delete(`${DEPARTMENT_API}/delete/${id}`);
 
-      // Remove department from local state
-      setDepartments(prev => prev.filter(d => d.id !== id));
+    // Remove department from local state
+    setDepartments(prev => prev.filter(d => d.id !== id));
 
-      // If the currently edited department is deleted, close edit modal
-      if (editDepartment?.id === id) {
-        setEditDepartmentModalVisible(false);
-      }
-
-      Alert.alert('Success', 'Department deleted successfully!');
-    } catch (error) {
-      console.log('Delete failed:', error.response?.data || error.message);
-      Alert.alert('Error', 'Failed to delete department');
-    }
-  };
-
-  // Doctor Functions
-  const handleAddDoctor = async () => {
-    if (!newDoctor.name.trim() || !newDoctor.phone.trim() || !newDoctor.specialization.trim() || !newDoctor.departmentId) {
-      Alert.alert('Error', 'Please fill required fields (Name, Phone, Specialization, and select Department)');
-      return;
+    // If the currently edited department is deleted, close edit modal
+    if (editDepartment?.id === id) {
+      setEditDepartmentModalVisible(false);
     }
 
-    try {
-      setUploadingDoctorImage(true);
-
-      const doctorData = {
-        name: newDoctor.name,
-        phone: newDoctor.phone,
-        mail: newDoctor.mail || '',
-        specialization: newDoctor.specialization,
-        experience: parseInt(newDoctor.experience) || 0,
-        fee: parseFloat(newDoctor.fee) || 0,
-        education: newDoctor.education || '',
-        departmentId: newDoctor.departmentId,
-        cabinNumber: newDoctor.cabinNumber || null,
-      };
-
-      const formData = new FormData();
-      formData.append(
-        'doctor',
-        new Blob([JSON.stringify(doctorData)], {
-          type: 'application/json',
-        })
-      );
-
-      // ✅ IMAGE PART (OPTIONAL)
-      if (newDoctor.localImage) {
-        const uri = newDoctor.localImage;
-        const filename = uri.split('/').pop() || `doctor_${Date.now()}.jpg`;
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : 'image/jpeg';
-
-        // @ts-ignore
-        formData.append('picture', {
-          uri,
-          name: filename,
-          type,
-        });
-      }
-
-      const res = await axios.post(`${DOCTOR_API}/add`, formData);
-      const savedDoctor = {
-        ...res.data,
-        picture: res.data.picture || newDoctor.localImage || null,
-      };
-
-      // Persist doctor picture locally if server omits it or to keep local copy
-      try {
-        if (savedDoctor.picture) {
-          await AsyncStorage.setItem(`doctor:${savedDoctor.id}:picture`, savedDoctor.picture);
-        }
-        await AsyncStorage.removeItem('unsaved:newDoctor:picture');
-      } catch (e) {
-        console.log('Error saving doctor picture to storage', e);
-      }
-
-      Alert.alert('Success', 'Doctor added successfully!');
-      
-      // Reset form
-      setNewDoctor({
-        name: '',
-        phone: '',
-        mail: '',
-        specialization: '',
-        experience: '',
-        fee: '',
-        education: '',
-        departmentId: '',
-        cabinNumber: '',
-        picture: null,
-        localImage: null,
-      });
-      
-      setAddDoctorModalVisible(false);
-      
-      // Refresh doctors list if we're viewing a specific department
-      if (viewDoctorsDepartmentId) {
-        fetchDoctorsByDepartment(viewDoctorsDepartmentId);
-      } else if (selectedHospital?.id) {
-        fetchAllDoctorsForHospital();
-      }
-
-    } catch (error) {
-      console.error('Add doctor failed:', error?.response?.data || error.message);
-      Alert.alert(
-        'Error',
-        error?.response?.data?.message || 'Failed to add doctor'
-      );
-    } finally {
-      setUploadingDoctorImage(false);
-    }
-  };
-
-  const handleUpdateDoctor = async () => {
-    if (!editDoctor.id) return;
-
-    try {
-      setUploadingDoctorImage(true);
-
-      const doctorData = {
-        name: editDoctor.name,
-        phone: editDoctor.phone,
-        mail: editDoctor.mail || '',
-        specialization: editDoctor.specialization,
-        experience: parseInt(editDoctor.experience) || 0,
-        fee: parseFloat(editDoctor.fee) || 0,
-        education: editDoctor.education || '',
-        departmentId: editDoctor.departmentId,
-        cabinNumber: editDoctor.cabinNumber || null,
-      };
-
-      const formData = new FormData();
-      formData.append(
-        'doctor',
-        new Blob([JSON.stringify(doctorData)], {
-          type: 'application/json',
-        })
-      );
-
-      // ✅ IMAGE PART
-      if (editDoctor.localImage) {
-        const uri = editDoctor.localImage;
-        const filename = uri.split('/').pop() || `doctor_${Date.now()}.jpg`;
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : 'image/jpeg';
-
-        // @ts-ignore
-        formData.append('picture', {
-          uri,
-          name: filename,
-          type,
-        });
-      }
-
-      const res = await axios.put(
-        `${DOCTOR_API}/update/${editDoctor.id}`,
-        formData
-      );
-
-      const updatedDoctor = {
-        ...res.data,
-        picture:
-          res.data.picture ||
-          editDoctor.localImage ||
-          editDoctor.picture ||
-          null,
-      };
-
-      // Update doctors list
-      setDoctors(prev =>
-        prev.map(d =>
-          d.id === editDoctor.id ? updatedDoctor : d
-        )
-      );
-
-      // Persist updated doctor picture locally
-      try {
-        if (updatedDoctor.picture) {
-          await AsyncStorage.setItem(`doctor:${updatedDoctor.id}:picture`, updatedDoctor.picture);
-        }
-      } catch (e) {
-        console.log('Error saving updated doctor picture to storage', e);
-      }
-
-      Alert.alert('Success', 'Doctor updated successfully!');
-      setEditDoctorModalVisible(false);
-
-    } catch (error) {
-      console.error('Update doctor failed:', error?.response?.data || error.message);
-      Alert.alert(
-        'Error',
-        error?.response?.data?.message || 'Failed to update doctor'
-      );
-    } finally {
-      setUploadingDoctorImage(false);
-    }
-  };
-
-  const handleDeleteDoctor = async (doctor) => {
-    const id = doctor?.id;
-    if (!id) return;
-
-    try {
-      await axios.delete(`${DOCTOR_API}/delete/${id}`);
-
-      // Remove doctor from local state
-      setDoctors(prev => prev.filter(d => d.id !== id));
-
-      Alert.alert('Success', 'Doctor deleted successfully!');
-    } catch (error) {
-      console.log('Delete doctor failed:', error.response?.data || error.message);
-      Alert.alert('Error', 'Failed to delete doctor');
-    }
-  };
-
+    Alert.alert('Success', 'Department deleted successfully!');
+  } catch (error) {
+    console.log('Delete failed:', error.response?.data || error.message);
+    Alert.alert('Error', 'Failed to delete department');
+  }
+};
   const openEditModal = (hospital) => {
     setEditHospital({
       id: hospital.id,
@@ -1356,53 +1005,7 @@ export default function App() {
     setEditDepartmentModalVisible(true);
   };
 
-  const openAddDoctorModal = (departmentId = null) => {
-    setNewDoctor({
-      name: '',
-      phone: '',
-      mail: '',
-      specialization: '',
-      experience: '',
-      fee: '',
-      education: '',
-      departmentId: departmentId || '',
-      cabinNumber: '',
-      picture: null,
-      localImage: null,
-    });
-    setAddDoctorModalVisible(true);
-  };
-
-  const openEditDoctorModal = (doctor) => {
-    setEditDoctor({
-      id: doctor.id,
-      name: doctor.name,
-      phone: doctor.phone,
-      mail: doctor.mail || '',
-      specialization: doctor.specialization,
-      experience: doctor.experience.toString(),
-      fee: doctor.fee.toString(),
-      education: doctor.education || '',
-      departmentId: doctor.departmentId,
-      cabinNumber: doctor.cabinNumber || '',
-      picture: doctor.picture,
-      localImage: null,
-    });
-    setEditDoctorModalVisible(true);
-  };
-
-  const openViewDoctorsModal = (departmentId = null, departmentName = null) => {
-    setViewDoctorsDepartmentId(departmentId);
-    setSelectedDepartmentForDoctors(departments.find(d => d.id === departmentId) || null);
-    
-    if (departmentId) {
-      fetchDoctorsByDepartment(departmentId);
-    } else {
-      fetchAllDoctorsForHospital();
-    }
-    
-    setViewDoctorsModalVisible(true);
-  };
+  // Add-doctor handler removed (add-doctor UI removed)
 
   if (loading && !refreshing) {
     return (
@@ -1412,6 +1015,8 @@ export default function App() {
       </View>
     );
   }
+
+  
 
   return (
     <LinearGradient
@@ -1507,7 +1112,6 @@ export default function App() {
                   picture: null,
                   localImage: null,
                 });
-                try { AsyncStorage.removeItem('unsaved:newHospital:picture'); } catch (e) { console.log('Failed removing unsaved image', e); }
               }}
             >
               <View className="flex-1 bg-black/40 items-center justify-center">
@@ -1539,10 +1143,10 @@ export default function App() {
                             rating: '',
                             about: '',
                             contactNumber: '',
+                           
                             picture: null,
                             localImage: null,
                           });
-                          try { AsyncStorage.removeItem('unsaved:newHospital:picture'); } catch (e) { console.log('Failed removing unsaved image', e); }
                         }}
                         disabled={isAddingHospital || uploadingImage}
                       >
@@ -1718,10 +1322,13 @@ export default function App() {
                             className="border border-gray-300 rounded-xl p-3"
                             editable={!isAddingHospital && !uploadingImage}
                           />
-                        </View>                        
+                        </View>
+
+                        
                       </>
                     )}
                   </ScrollView>
+
                   <View className="flex-row border-t p-4">
                     {hospitalStep === 2 && (
                       <TouchableOpacity
@@ -1945,6 +1552,8 @@ export default function App() {
                         editable={!uploadingImage}
                       />
                     </View>
+
+                    
                   </ScrollView>
 
                   <View className="flex-row border-t p-4">
@@ -1978,8 +1587,8 @@ export default function App() {
               <SafeAreaView className="flex-1 bg-white">
                 <ScrollView>
                   <LinearGradient
-                    colors={['#38bdf8', '#0ea5e9']}
-                    className="px-6 pt-4 pb-5"
+                    colors={['#4f46e5', '#6366f1']}
+                    className="px-6 pt-6 pb-8"
                   >
                     <TouchableOpacity
                       onPress={() => {
@@ -2122,101 +1731,25 @@ export default function App() {
                       </View>
                     </View>
                   </View>
-                </View>
 
-              {/* Available Doctors Section */}
-                  <View className="mb-6">
-                    <View className="flex-row justify-between items-center mb-4">
-                      <Text className="font-bold text-lg">👩‍⚕️ Available Doctors</Text>
-                      <View className="flex-row space-x-2">
-                        <TouchableOpacity
-                          onPress={() => openViewDoctorsModal()}
-                          className="bg-indigo-500 px-3 py-1 rounded-lg"
-                        >
-                          <Text className="text-white font-medium">View All Doctors</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => openAddDoctorModal()}
-                          className="bg-green-500 px-3 py-1 rounded-lg"
-                        >
-                          <Text className="text-white font-medium">+ Add Doctor</Text>
-                        </TouchableOpacity>
                       </View>
-                    </View>
 
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-2">
-                      <View className="flex-row px-2">
-                        {/* Show actual doctors from API */}
-                        {(() => {
-                          // Get first 4 doctors from the doctors list
-                          const firstFourDoctors = doctors.slice(0, 4);
-                          
-                          if (firstFourDoctors.length > 0) {
-                            return firstFourDoctors.map(doc => (
-                              <DoctorCard
-                                key={doc.id}
-                                item={doc}
-                                onPress={(item, action) => {
-                                  if (action === 'profile') {
-                                    Alert.alert('Profile', 
-                                      `Name: ${item.name}\nSpecialization: ${item.specialization}\nExperience: ${item.experience} yrs\nFee: ₹${item.fee}\nEducation: ${item.education}\nPhone: ${item.phone}\nEmail: ${item.mail}`
-                                    );
-                                  } else if (action === 'appointment') {
-                                    Alert.alert('Booking', `Booking not implemented for ${item.name}`);
-                                  }
-                                }}
-                                onEdit={openEditDoctorModal}
-                                onDelete={handleDeleteDoctor}
-                              />
-                            ));
-                          } else {
-                            // Show placeholder if no doctors
-                            return (
-                              <View className="w-40 px-2">
-                                <View className="bg-gray-100 rounded-xl p-4 items-center justify-center h-32">
-                                  <Text className="text-gray-500 text-center">No doctors added yet</Text>
-                                  <TouchableOpacity
-                                    onPress={() => openAddDoctorModal()}
-                                    className="mt-2 bg-green-500 px-3 py-1 rounded-lg"
-                                  >
-                                    <Text className="text-white">Add Doctor</Text>
-                                  </TouchableOpacity>
-                                </View>
-                              </View>
-                            );
-                          }
-                        })()}
-                      </View>
-                    </ScrollView>
-                  </View>
                       {/* Departments Section */}
                       <View className="mb-6">
                         <View className="flex-row justify-between items-center mb-4">
                           <Text className="font-bold text-lg">
                             🏥 Departments ({departments.length})
                           </Text>
-                          <View className="flex-row items-center">
-                            <TouchableOpacity
-                              onPress={() => {
-                                setViewDepartmentsModalVisible(true);
-                                fetchDepartments(selectedHospital.id);
-                                setSearchDepartment('');
-                              }}
-                              className="bg-indigo-500 px-3 py-1 rounded-lg"
-                            >
-                              <Text className="text-white font-medium">View All</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                              onPress={() => {
-                                setNewDepartment({ name: '', description: '' });
-                                setAddDepartmentModalVisible(true);
-                              }}
-                              className="bg-green-500 px-3 py-1 rounded-lg ml-2"
-                            >
-                              <Text className="text-white font-medium">+ Add Department</Text>
-                            </TouchableOpacity>
-                          </View>
+                          <TouchableOpacity
+                            onPress={() => {
+                              setViewDepartmentsModalVisible(true);
+                              fetchDepartments(selectedHospital.id);
+                              setSearchDepartment('');
+                            }}
+                            className="bg-indigo-500 px-3 py-1 rounded-lg"
+                          >
+                            <Text className="text-white font-medium">View All</Text>
+                          </TouchableOpacity>
                         </View>
                         
                         {/* Department Search */}
@@ -2254,13 +1787,7 @@ export default function App() {
                           <View className="flex-row flex-wrap -mx-1.5">
                             {filteredDepartments.slice(0, 6).map((department, index) => (
                               <View key={department.id} className="w-1/2 px-1.5 mb-3">
-                                <TouchableOpacity 
-                                  activeOpacity={0.9}
-                                  onPress={() => {
-                                    // View doctors for this department
-                                    openViewDoctorsModal(department.id, department.name);
-                                  }}
-                                >
+                                <TouchableOpacity activeOpacity={0.9}>
                                   <LinearGradient
                                     colors={getDepartmentColors(index)}
                                     start={{ x: 0, y: 0 }}
@@ -2291,17 +1818,17 @@ export default function App() {
                                       <View className="flex-row items-center">
                                         <Ionicons name="medical" size={14} color="white" />
                                         <Text className="text-white/80 text-xs ml-1">
-                                          View Doctors
+                                          {getRandomDoctorCount()} Doctors
                                         </Text>
                                       </View>
                                       <TouchableOpacity
-                                        onPress={(e) => {
-                                          e.stopPropagation();
-                                          openAddDoctorModal(department.id);
+                                        onPress={() => {
+                                          // Option to view department details
+                                          Alert.alert(department.name, department.description);
                                         }}
                                         className="bg-white/20 px-2 py-1 rounded-lg"
                                       >
-                                        <Text className="text-white text-xs">+ Add Doctor</Text>
+                                        <Text className="text-white text-xs">View</Text>
                                       </TouchableOpacity>
                                     </View>
                                   </LinearGradient>
@@ -2410,12 +1937,6 @@ export default function App() {
                                 <Text className="text-gray-600">
                                   {department.description}
                                 </Text>
-                                <TouchableOpacity
-                                  onPress={() => openViewDoctorsModal(department.id, department.name)}
-                                  className="mt-2"
-                                >
-                                  <Text className="text-blue-600 text-sm">View Doctors →</Text>
-                                </TouchableOpacity>
                               </View>
                               <View className="flex-row space-x-2">
                                 <TouchableOpacity
@@ -2430,102 +1951,8 @@ export default function App() {
                                 >
                                   <Ionicons name="trash" size={20} color="#EF4444" />
                                 </TouchableOpacity>
-                                <TouchableOpacity
-                                  onPress={() => openAddDoctorModal(department.id)}
-                                  className="bg-green-100 p-2 rounded-lg"
-                                >
-                                  <Ionicons name="person-add" size={20} color="#10B981" />
-                                </TouchableOpacity>
                               </View>
                             </View>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                </ScrollView>
-              </SafeAreaView>
-            </Modal>
-
-            {/* ================= VIEW DOCTORS MODAL ================= */}
-            <Modal visible={viewDoctorsModalVisible} animationType="slide">
-              <SafeAreaView className="flex-1 bg-white">
-                <ScrollView>
-                  <LinearGradient
-                    colors={['#4f46e5', '#6366f1']}
-                    className="px-6 pt-6 pb-6"
-                  >
-                    <View className="flex-row justify-between items-center">
-                      <View>
-                        <Text className="text-white text-xl font-bold">
-                          {selectedDepartmentForDoctors 
-                            ? `Doctors - ${selectedDepartmentForDoctors.name}`
-                            : 'All Doctors'}
-                        </Text>
-                        <Text className="text-indigo-100 text-sm">
-                          {selectedHospital?.name}
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setViewDoctorsModalVisible(false);
-                          setViewDoctorsDepartmentId(null);
-                          setSelectedDepartmentForDoctors(null);
-                        }}
-                      >
-                        <Text className="text-white text-2xl">✕</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </LinearGradient>
-
-                  <View className="p-4">
-                    <View className="flex-row justify-between items-center mb-4">
-                      <Text className="text-lg font-bold text-gray-900">
-                        {selectedDepartmentForDoctors 
-                          ? `${selectedDepartmentForDoctors.name} Doctors (${doctors.length})`
-                          : `All Doctors (${doctors.length})`}
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() => openAddDoctorModal(viewDoctorsDepartmentId)}
-                        className="bg-green-500 px-4 py-2 rounded-lg"
-                      >
-                        <Text className="text-white font-medium">+ Add Doctor</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {loadingDoctors ? (
-                      <View className="py-10 items-center">
-                        <ActivityIndicator size="large" color="#4F46E5" />
-                        <Text className="text-gray-600 mt-2">Loading doctors...</Text>
-                      </View>
-                    ) : doctors.length === 0 ? (
-                      <View className="py-10 items-center">
-                        <Text className="text-gray-500 text-lg">No doctors added yet</Text>
-                        <TouchableOpacity
-                          onPress={() => openAddDoctorModal(viewDoctorsDepartmentId)}
-                          className="mt-4 bg-green-500 px-4 py-2 rounded-lg"
-                        >
-                          <Text className="text-white">Add First Doctor</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
-                      <View className="flex-row flex-wrap -mx-2">
-                        {doctors.map((doctor) => (
-                          <View key={doctor.id} className="w-1/2 px-2 mb-4">
-                            <DoctorCard
-                              item={doctor}
-                              onPress={(item, action) => {
-                                if (action === 'profile') {
-                                  Alert.alert('Doctor Profile', 
-                                    `Name: ${item.name}\nSpecialization: ${item.specialization}\nExperience: ${item.experience} yrs\nFee: ₹${item.fee}\nEducation: ${item.education}\nPhone: ${item.phone}\nEmail: ${item.mail}\nCabin: ${item.cabinNumber || 'N/A'}\nDepartment: ${item.departmentName}`
-                                  );
-                                } else if (action === 'appointment') {
-                                  Alert.alert('Booking', `Booking not implemented for ${item.name}`);
-                                }
-                              }}
-                              onEdit={openEditDoctorModal}
-                              onDelete={handleDeleteDoctor}
-                            />
                           </View>
                         ))}
                       </View>
@@ -2673,482 +2100,6 @@ export default function App() {
                       className="flex-1 bg-green-500 rounded-xl p-3 items-center"
                     >
                       <Text className="text-white font-bold">Update Department</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </Modal>
-
-            {/* ================= ADD DOCTOR MODAL ================= */}
-            <Modal visible={addDoctorModalVisible} animationType="slide" transparent>
-              <View className="flex-1 bg-black/40 items-center justify-center">
-                <View className="bg-white w-[90%] rounded-2xl overflow-hidden max-h-[90%]">
-                  <LinearGradient
-                    colors={['#4f46e5', '#6366f1']}
-                    className="px-4 py-3"
-                  >
-                    <View className="flex-row justify-between items-center">
-                      <Text className="text-white text-xl font-bold">
-                        Add New Doctor
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setAddDoctorModalVisible(false);
-                          setNewDoctor({
-                            name: '',
-                            phone: '',
-                            mail: '',
-                            specialization: '',
-                            experience: '',
-                            fee: '',
-                            education: '',
-                            departmentId: '',
-                            cabinNumber: '',
-                            picture: null,
-                            localImage: null,
-                          });
-                        }}
-                        disabled={uploadingDoctorImage}
-                      >
-                        <Text className="text-white text-2xl">✕</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </LinearGradient>
-
-                  <ScrollView className="p-4 max-h-[500px]" showsVerticalScrollIndicator={false}>
-                    {/* Image Upload Section */}
-                    <View className="mb-6 items-center">
-                      <TouchableOpacity
-                        onPress={() => pickImage(false, true)}
-                        disabled={uploadingDoctorImage}
-                        className={`w-32 h-32 rounded-2xl ${
-                          newDoctor.localImage 
-                            ? 'border-2 border-blue-500' 
-                            : 'border-2 border-dashed border-gray-300'
-                        } items-center justify-center overflow-hidden`}
-                      >
-                        {newDoctor.localImage ? (
-                          <Image
-                            source={{ uri: newDoctor.localImage }}
-                            className="w-full h-full"
-                            resizeMode="cover"
-                          />
-                        ) : (
-                          <View className="items-center">
-                            <Ionicons name="camera" size={40} color="#9CA3AF" />
-                            <Text className="text-gray-500 mt-2 text-center text-xs">
-                              Upload Doctor Image
-                            </Text>
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                      {uploadingDoctorImage && (
-                        <View className="mt-2 flex-row items-center">
-                          <ActivityIndicator size="small" color="#4F46E5" />
-                          <Text className="text-gray-600 ml-2 text-sm">Uploading image...</Text>
-                        </View>
-                      )}
-                      <Text className="text-gray-500 text-xs mt-2">
-                        Tap to upload doctor image (optional)
-                      </Text>
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="font-bold mb-2">Name *</Text>
-                      <TextInput
-                        placeholder="Enter doctor name"
-                        value={newDoctor.name}
-                        onChangeText={text =>
-                          setNewDoctor(prev => ({ ...prev, name: text }))
-                        }
-                        className="border border-gray-300 rounded-xl p-3"
-                        editable={!uploadingDoctorImage}
-                      />
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="font-bold mb-2">Phone *</Text>
-                      <TextInput
-                        placeholder="Enter phone number"
-                        value={newDoctor.phone}
-                        onChangeText={text =>
-                          setNewDoctor(prev => ({ ...prev, phone: text }))
-                        }
-                        keyboardType="phone-pad"
-                        className="border border-gray-300 rounded-xl p-3"
-                        editable={!uploadingDoctorImage}
-                      />
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="font-bold mb-2">Email</Text>
-                      <TextInput
-                        placeholder="Enter email"
-                        value={newDoctor.mail}
-                        onChangeText={text =>
-                          setNewDoctor(prev => ({ ...prev, mail: text }))
-                        }
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        className="border border-gray-300 rounded-xl p-3"
-                        editable={!uploadingDoctorImage}
-                      />
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="font-bold mb-2">Specialization *</Text>
-                      <TextInput
-                        placeholder="Enter specialization (e.g., Cardiology)"
-                        value={newDoctor.specialization}
-                        onChangeText={text =>
-                          setNewDoctor(prev => ({ ...prev, specialization: text }))
-                        }
-                        className="border border-gray-300 rounded-xl p-3"
-                        editable={!uploadingDoctorImage}
-                      />
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="font-bold mb-2">Experience (years)</Text>
-                      <TextInput
-                        placeholder="Enter experience in years"
-                        value={newDoctor.experience}
-                        onChangeText={text =>
-                          setNewDoctor(prev => ({ ...prev, experience: text }))
-                        }
-                        keyboardType="numeric"
-                        className="border border-gray-300 rounded-xl p-3"
-                        editable={!uploadingDoctorImage}
-                      />
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="font-bold mb-2">Consultation Fee (₹)</Text>
-                      <TextInput
-                        placeholder="Enter fee amount"
-                        value={newDoctor.fee}
-                        onChangeText={text =>
-                          setNewDoctor(prev => ({ ...prev, fee: text }))
-                        }
-                        keyboardType="decimal-pad"
-                        className="border border-gray-300 rounded-xl p-3"
-                        editable={!uploadingDoctorImage}
-                      />
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="font-bold mb-2">Education</Text>
-                      <TextInput
-                        placeholder="Enter education (e.g., MBBS, MD)"
-                        value={newDoctor.education}
-                        onChangeText={text =>
-                          setNewDoctor(prev => ({ ...prev, education: text }))
-                        }
-                        className="border border-gray-300 rounded-xl p-3"
-                        editable={!uploadingDoctorImage}
-                      />
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="font-bold mb-2">Cabin Number</Text>
-                      <TextInput
-                        placeholder="Enter cabin number (optional)"
-                        value={newDoctor.cabinNumber}
-                        onChangeText={text =>
-                          setNewDoctor(prev => ({ ...prev, cabinNumber: text }))
-                        }
-                        className="border border-gray-300 rounded-xl p-3"
-                        editable={!uploadingDoctorImage}
-                      />
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="font-bold mb-2">Department *</Text>
-                      {departments.length === 0 ? (
-                        <Text className="text-red-500">No departments available. Please add a department first.</Text>
-                      ) : (
-                        <ScrollView className="max-h-40">
-                          {departments.map(dept => (
-                            <TouchableOpacity
-                              key={dept.id}
-                              onPress={() => setNewDoctor(prev => ({ ...prev, departmentId: dept.id }))}
-                              className={`border rounded-xl p-3 mb-2 ${
-                                newDoctor.departmentId === dept.id 
-                                  ? 'border-blue-500 bg-blue-50' 
-                                  : 'border-gray-300'
-                              }`}
-                            >
-                              <Text className="font-medium">{dept.name}</Text>
-                              <Text className="text-gray-500 text-xs">{dept.description}</Text>
-                            </TouchableOpacity>
-                          ))}
-                        </ScrollView>
-                      )}
-                      {newDoctor.departmentId && (
-                        <Text className="text-green-600 text-sm mt-2">
-                          Selected: {departments.find(d => d.id === newDoctor.departmentId)?.name}
-                        </Text>
-                      )}
-                    </View>
-                  </ScrollView>
-
-                  <View className="flex-row border-t p-4">
-                    <TouchableOpacity
-                      onPress={() => {
-                        setAddDoctorModalVisible(false);
-                        setNewDoctor({
-                          name: '',
-                          phone: '',
-                          mail: '',
-                          specialization: '',
-                          experience: '',
-                          fee: '',
-                          education: '',
-                          departmentId: '',
-                          cabinNumber: '',
-                          picture: null,
-                          localImage: null,
-                        });
-                      }}
-                      className="flex-1 border border-gray-300 rounded-xl p-3 mr-2 items-center"
-                      disabled={uploadingDoctorImage}
-                    >
-                      <Text className="font-bold">Cancel</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={handleAddDoctor}
-                      className="flex-1 bg-green-500 rounded-xl p-3 items-center"
-                      disabled={uploadingDoctorImage || departments.length === 0}
-                      style={{ opacity: (uploadingDoctorImage || departments.length === 0) ? 0.7 : 1 }}
-                    >
-                      {uploadingDoctorImage ? (
-                        <ActivityIndicator size="small" color="white" />
-                      ) : (
-                        <Text className="text-white font-bold">Add Doctor</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </Modal>
-
-            {/* ================= EDIT DOCTOR MODAL ================= */}
-            <Modal visible={editDoctorModalVisible} animationType="slide" transparent>
-              <View className="flex-1 bg-black/40 items-center justify-center">
-                <View className="bg-white w-[90%] rounded-2xl overflow-hidden max-h-[90%]">
-                  <LinearGradient
-                    colors={['#4f46e5', '#6366f1']}
-                    className="px-4 py-3"
-                  >
-                    <View className="flex-row justify-between items-center">
-                      <Text className="text-white text-xl font-bold">
-                        Edit Doctor
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() => setEditDoctorModalVisible(false)}
-                        disabled={uploadingDoctorImage}
-                      >
-                        <Text className="text-white text-2xl">✕</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </LinearGradient>
-
-                  <ScrollView className="p-4 max-h-[500px]" showsVerticalScrollIndicator={false}>
-                    {/* Image Upload Section */}
-                    <View className="mb-6 items-center">
-                      <TouchableOpacity
-                        onPress={() => pickImage(true, true)}
-                        disabled={uploadingDoctorImage}
-                        className={`w-32 h-32 rounded-2xl ${
-                          editDoctor.localImage || editDoctor.picture
-                            ? 'border-2 border-blue-500' 
-                            : 'border-2 border-dashed border-gray-300'
-                        } items-center justify-center overflow-hidden`}
-                      >
-                        {editDoctor.localImage ? (
-                          <Image
-                            source={{ uri: editDoctor.localImage }}
-                            className="w-full h-full"
-                            resizeMode="cover"
-                          />
-                        ) : editDoctor.picture ? (
-                          <Image
-                            source={{ uri: editDoctor.picture }}
-                            className="w-full h-full"
-                            resizeMode="cover"
-                          />
-                        ) : (
-                          <View className="items-center">
-                            <Ionicons name="camera" size={40} color="#9CA3AF" />
-                            <Text className="text-gray-500 mt-2 text-center text-xs">
-                              Upload Doctor Image
-                            </Text>
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                      {uploadingDoctorImage && (
-                        <View className="mt-2 flex-row items-center">
-                          <ActivityIndicator size="small" color="#4F46E5" />
-                          <Text className="text-gray-600 ml-2 text-sm">Uploading image...</Text>
-                        </View>
-                      )}
-                      <Text className="text-gray-500 text-xs mt-2">
-                        Tap to change doctor image (optional)
-                      </Text>
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="font-bold mb-2">Name *</Text>
-                      <TextInput
-                        value={editDoctor.name}
-                        onChangeText={text =>
-                          setEditDoctor(prev => ({ ...prev, name: text }))
-                        }
-                        className="border border-gray-300 rounded-xl p-3"
-                        editable={!uploadingDoctorImage}
-                      />
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="font-bold mb-2">Phone *</Text>
-                      <TextInput
-                        value={editDoctor.phone}
-                        onChangeText={text =>
-                          setEditDoctor(prev => ({ ...prev, phone: text }))
-                        }
-                        keyboardType="phone-pad"
-                        className="border border-gray-300 rounded-xl p-3"
-                        editable={!uploadingDoctorImage}
-                      />
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="font-bold mb-2">Email</Text>
-                      <TextInput
-                        value={editDoctor.mail}
-                        onChangeText={text =>
-                          setEditDoctor(prev => ({ ...prev, mail: text }))
-                        }
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        className="border border-gray-300 rounded-xl p-3"
-                        editable={!uploadingDoctorImage}
-                      />
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="font-bold mb-2">Specialization *</Text>
-                      <TextInput
-                        value={editDoctor.specialization}
-                        onChangeText={text =>
-                          setEditDoctor(prev => ({ ...prev, specialization: text }))
-                        }
-                        className="border border-gray-300 rounded-xl p-3"
-                        editable={!uploadingDoctorImage}
-                      />
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="font-bold mb-2">Experience (years)</Text>
-                      <TextInput
-                        value={editDoctor.experience}
-                        onChangeText={text =>
-                          setEditDoctor(prev => ({ ...prev, experience: text }))
-                        }
-                        keyboardType="numeric"
-                        className="border border-gray-300 rounded-xl p-3"
-                        editable={!uploadingDoctorImage}
-                      />
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="font-bold mb-2">Consultation Fee (₹)</Text>
-                      <TextInput
-                        value={editDoctor.fee}
-                        onChangeText={text =>
-                          setEditDoctor(prev => ({ ...prev, fee: text }))
-                        }
-                        keyboardType="decimal-pad"
-                        className="border border-gray-300 rounded-xl p-3"
-                        editable={!uploadingDoctorImage}
-                      />
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="font-bold mb-2">Education</Text>
-                      <TextInput
-                        value={editDoctor.education}
-                        onChangeText={text =>
-                          setEditDoctor(prev => ({ ...prev, education: text }))
-                        }
-                        className="border border-gray-300 rounded-xl p-3"
-                        editable={!uploadingDoctorImage}
-                      />
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="font-bold mb-2">Cabin Number</Text>
-                      <TextInput
-                        value={editDoctor.cabinNumber}
-                        onChangeText={text =>
-                          setEditDoctor(prev => ({ ...prev, cabinNumber: text }))
-                        }
-                        className="border border-gray-300 rounded-xl p-3"
-                        editable={!uploadingDoctorImage}
-                      />
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="font-bold mb-2">Department</Text>
-                      {departments.length === 0 ? (
-                        <Text className="text-red-500">No departments available</Text>
-                      ) : (
-                        <ScrollView className="max-h-40">
-                          {departments.map(dept => (
-                            <TouchableOpacity
-                              key={dept.id}
-                              onPress={() => setEditDoctor(prev => ({ ...prev, departmentId: dept.id }))}
-                              className={`border rounded-xl p-3 mb-2 ${
-                                editDoctor.departmentId === dept.id 
-                                  ? 'border-blue-500 bg-blue-50' 
-                                  : 'border-gray-300'
-                              }`}
-                            >
-                              <Text className="font-medium">{dept.name}</Text>
-                              <Text className="text-gray-500 text-xs">{dept.description}</Text>
-                            </TouchableOpacity>
-                          ))}
-                        </ScrollView>
-                      )}
-                      {editDoctor.departmentId && (
-                        <Text className="text-green-600 text-sm mt-2">
-                          Selected: {departments.find(d => d.id === editDoctor.departmentId)?.name}
-                        </Text>
-                      )}
-                    </View>
-                  </ScrollView>
-
-                  <View className="flex-row border-t p-4">
-                    <TouchableOpacity
-                      onPress={() => setEditDoctorModalVisible(false)}
-                      className="flex-1 border border-gray-300 rounded-xl p-3 mr-2 items-center"
-                      disabled={uploadingDoctorImage}
-                    >
-                      <Text className="font-bold">Cancel</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={handleUpdateDoctor}
-                      className="flex-1 bg-green-500 rounded-xl p-3 items-center"
-                      disabled={uploadingDoctorImage}
-                      style={{ opacity: uploadingDoctorImage ? 0.7 : 1 }}
-                    >
-                      {uploadingDoctorImage ? (
-                        <ActivityIndicator size="small" color="white" />
-                      ) : (
-                        <Text className="text-white font-bold">Update Doctor</Text>
-                      )}
                     </TouchableOpacity>
                   </View>
                 </View>
