@@ -1,29 +1,16 @@
-import { Tabs } from "expo-router";
-import React from "react";
+import React, { Component } from "react";
+import { Text, View } from "react-native";
 
-const _layout =() => {
-  return (
-    <Tabs>
-      <Tabs.Screen
-        name="hospitalhome"
-        options={{ headerShown: false }} />
-        
-    </Tabs>
-  )
-}
-export default _layout;
-import { Stack } from "expo-router";
-import React from "react";
-
-const _layout =() => {
- 
- return (
-  <Stack>
-    <Stack.Screen name="hospitalhome" options={{headerShown:false}}/>
-  </Stack>
-  );
-
+export class _layout extends Component {
+  render() {
+    return (
+      <View>
+        <Text> textInComponent </Text>
+      </View>
+    );
+  }
 }
 
-
 export default _layout;
+
+
