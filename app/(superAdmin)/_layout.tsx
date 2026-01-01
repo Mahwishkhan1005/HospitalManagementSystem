@@ -1,14 +1,14 @@
-import React, { Component } from "react";
-import { Text, View } from "react-native";
+import { Tabs } from "expo-router";
+import React from "react";
 
-export class _layout extends Component {
-  render() {
-    return (
-      <View>
-        <Text> textInComponent </Text>
-      </View>
-    );
-  }
+const _layout =() => {
+  return (
+    <Tabs>
+      <Tabs.Screen
+        name="adminhome"
+        options={{ headerShown: false }} />
+        
+    </Tabs>
+  )
 }
-
 export default _layout;
