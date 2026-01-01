@@ -64,6 +64,118 @@ const HospitalHome = () => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setIsAddingHospital(false);
+    }
+  };
+
+  // Load departments for a hospital
+  const fetchDepartments = async (hospitalId) => {
+    if (!hospitalId) return;
+    
+    try {
+      setLoadingDepartments(true);
+      const response = await fetch(`${DEPARTMENT_API}/hospital/${hospitalId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log('Fetched departments:', data);
+      setDepartments(data);
+      setFilteredDepartments(data);
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      Alert.alert('Error', 'Failed to fetch departments.');
+      setDepartments([]);
+      setFilteredDepartments([]);
+    } finally {
+      setLoadingDepartments(false);
+    }
+  };
+
+  // Load doctors for a department
+  const fetchDoctorsByDepartment = async (departmentId) => {
+    if (!departmentId) return;
+    
+    try {
+      setLoadingDoctors(true);
+      const response = await fetch(`${DOCTOR_API}/department/${departmentId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log('Fetched doctors:', data);
+      // Normalize doctors: if server omits picture, check AsyncStorage for a persisted local URI
+      const normalized = [];
+      for (const d of data) {
+        let picture = d.picture || null;
+        if (!picture) {
+          try {
+            const key = `doctor:${d.id}:picture`;
+            const saved = await AsyncStorage.getItem(key);
+            if (saved) picture = saved;
+          } catch (e) {
+            console.log('Error reading doctor picture from storage', e);
+          }
+        }
+        normalized.push({ ...d, picture });
+      }
+      setDoctors(normalized);
+    } catch (error) {
+      console.error('Error fetching doctors:', error);
+      Alert.alert('Error', 'Failed to fetch doctors.');
+      setDoctors([]);
+    } finally {
+      setLoadingDoctors(false);
+    }
+  };
+
+  // Load all doctors for selected hospital (from all departments)
+  const fetchAllDoctorsForHospital = async () => {
+    if (!selectedHospital?.id) return;
+    
+    try {
+      setLoadingDoctors(true);
+      // Get all departments first
+      const deptResponse = await fetch(`${DEPARTMENT_API}/hospital/${selectedHospital.id}`);
+      if (!deptResponse.ok) {
+        throw new Error(`HTTP error! status: ${deptResponse.status}`);
+      }
+      const departments = await deptResponse.json();
+      
+      // Fetch doctors for each department
+      const allDoctors = [];
+      for (const dept of departments) {
+        const doctorResponse = await fetch(`${DOCTOR_API}/department/${dept.id}`);
+        if (doctorResponse.ok) {
+          const doctors = await doctorResponse.json();
+          for (const d of doctors) allDoctors.push(d);
+        }
+      }
+
+      // Normalize and load persisted pictures
+      const normalized = [];
+      for (const d of allDoctors) {
+        let picture = d.picture || null;
+        if (!picture) {
+          try {
+            const key = `doctor:${d.id}:picture`;
+            const saved = await AsyncStorage.getItem(key);
+            if (saved) picture = saved;
+          } catch (e) {
+            console.log('Error reading doctor picture from storage', e);
+          }
+        }
+        normalized.push({ ...d, picture });
+      }
+
+      console.log('Fetched all doctors for hospital:', normalized);
+      setDoctors(normalized);
+    } catch (error) {
+      console.error('Error fetching all doctors:', error);
+      Alert.alert('Error', 'Failed to fetch doctors.');
+      setDoctors([]);
+    } finally {
+      setLoadingDoctors(false);
     }
   };
 
@@ -152,37 +264,558 @@ const HospitalHome = () => {
             <DetailRow icon="medical-outline" text={item.issue} isItalic />
           </View>
 
-          <TouchableOpacity
-            onPress={() => handleOpenConsultation(item)}
-            className={`mt-4 py-3 rounded-xl flex-row justify-center items-center ${isCompleted ? 'bg-gray-100' : 'bg-teal-600'}`}
-          >
-            <Ionicons name={isCompleted ? "eye-outline" : "create-outline"} size={16} color={isCompleted ? "#4b5563" : "white"} />
-            <Text className={`ml-2 font-bold text-sm ${isCompleted ? 'text-gray-600' : 'text-white'}`}>
-              {isCompleted ? "View Details" : "Update Consultation"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
+                        <View className="mb-4">
+                          <Text className="font-bold mb-2">Hospital Name *</Text>
+                          <TextInput
+                            placeholder="Enter hospital name"
+                            value={newHospital.name}
+                            onChangeText={text =>
+                              setNewHospital(prev => ({ ...prev, name: text }))
+                            }
+                            className="border border-gray-300 rounded-xl p-3"
+                            editable={!isAddingHospital && !uploadingImage}
+                          />
+                        </View>
 
-  return (
-    <View className="flex-1 bg-gray-50">
-      <LinearGradient
-        colors={["rgba(177,235,252,0.86)", "rgba(90,250,215,0.86)"]}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-        className={`${isWeb ? "px-10 py-5" : "px-5 pt-12 pb-6"} rounded-b-[30px] shadow-lg`}
-      >
-        <View className="flex-row justify-between items-center mb-4">
-          <View className="flex-row items-center">
-            <FontAwesome name="heartbeat" size={26} color="#0d9488" />
-            <Text className="ml-2 text-2xl font-bold text-gray-800">WECARE</Text>
-          </View>
-          <TouchableOpacity onPress={handleLogout} className="flex-row items-center bg-white/40 px-3 py-1.5 rounded-full">
-            <FontAwesome name="sign-out" size={14} color="#374151" />
-            <Text className="ml-2 text-xs font-semibold text-gray-700">Logout</Text>
-          </TouchableOpacity>
-        </View>
+                        <View className="mb-4">
+                          <Text className="font-bold mb-2">Address *</Text>
+                          <TextInput
+                            placeholder="Enter address"
+                            value={newHospital.address}
+                            onChangeText={text =>
+                              setNewHospital(prev => ({ ...prev, address: text }))
+                            }
+                            className="border border-gray-300 rounded-xl p-3"
+                            editable={!isAddingHospital && !uploadingImage}
+                          />
+                        </View>
+
+                        <View className="mb-4">
+                          <Text className="font-bold mb-2">City *</Text>
+                          <TextInput
+                            placeholder="Enter city"
+                            value={newHospital.city}
+                            onChangeText={text =>
+                              setNewHospital(prev => ({ ...prev, city: text }))
+                            }
+                            className="border border-gray-300 rounded-xl p-3"
+                            editable={!isAddingHospital && !uploadingImage}
+                          />
+                        </View>
+
+                        <View className="mb-4">
+                          <Text className="font-bold mb-2">About Hospital</Text>
+                          <TextInput
+                            placeholder="Describe the hospital"
+                            value={newHospital.about}
+                            onChangeText={text =>
+                              setNewHospital(prev => ({ ...prev, about: text }))
+                            }
+                            multiline
+                            numberOfLines={3}
+                            className="border border-gray-300 rounded-xl p-3 h-24"
+                            editable={!isAddingHospital && !uploadingImage}
+                          />
+                        </View>
+                      </>
+                    ) : (
+                      <>
+                        {/* Step 2: Detailed Information */}
+                        <View className="grid grid-cols-2 gap-4 mb-4">
+                          <View>
+                            <Text className="font-bold mb-2">Number of Doctors</Text>
+                            <TextInput
+                              placeholder="Enter number"
+                              keyboardType="numeric"
+                              value={newHospital.numberOfDoctors}
+                              onChangeText={text =>
+                                setNewHospital(prev => ({ ...prev, numberOfDoctors: text }))
+                              }
+                              className="border border-gray-300 rounded-xl p-3"
+                              editable={!isAddingHospital && !uploadingImage}
+                            />
+                          </View>
+
+                          <View>
+                            <Text className="font-bold mb-2">Number of Beds</Text>
+                            <TextInput
+                              placeholder="Enter number"
+                              keyboardType="numeric"
+                              value={newHospital.numberOfBeds}
+                              onChangeText={text =>
+                                setNewHospital(prev => ({ ...prev, numberOfBeds: text }))
+                              }
+                              className="border border-gray-300 rounded-xl p-3"
+                              editable={!isAddingHospital && !uploadingImage}
+                            />
+                          </View>
+
+                          <View>
+                            <Text className="font-bold mb-2">Age of Hospital (years)</Text>
+                            <TextInput
+                              placeholder="Enter age"
+                              keyboardType="numeric"
+                              value={newHospital.ageOfHospital}
+                              onChangeText={text =>
+                                setNewHospital(prev => ({ ...prev, ageOfHospital: text }))
+                              }
+                              className="border border-gray-300 rounded-xl p-3"
+                              editable={!isAddingHospital && !uploadingImage}
+                            />
+                          </View>
+
+                          <View>
+                            <Text className="font-bold mb-2">Rating</Text>
+                            <TextInput
+                              placeholder="Enter rating (0-5)"
+                              keyboardType="decimal-pad"
+                              value={newHospital.rating}
+                              onChangeText={text =>
+                                setNewHospital(prev => ({ ...prev, rating: text }))
+                              }
+                              className="border border-gray-300 rounded-xl p-3"
+                              editable={!isAddingHospital && !uploadingImage}
+                            />
+                          </View>
+                        </View>
+
+                        <View className="mb-4">
+                          <Text className="font-bold mb-2">Contact Number</Text>
+                          <TextInput
+                            placeholder="Enter contact number"
+                            keyboardType="phone-pad"
+                            value={newHospital.contactNumber}
+                            onChangeText={text =>
+                              setNewHospital(prev => ({ ...prev, contactNumber: text }))
+                            }
+                            className="border border-gray-300 rounded-xl p-3"
+                            editable={!isAddingHospital && !uploadingImage}
+                          />
+                        </View>                        
+                      </>
+                    )}
+                  </ScrollView>
+                  <View className="flex-row border-t p-4">
+                    {hospitalStep === 2 && (
+                      <TouchableOpacity
+                        onPress={() => setHospitalStep(1)}
+                        className="flex-1 border border-gray-300 rounded-xl p-3 mr-2 items-center"
+                        disabled={isAddingHospital || uploadingImage}
+                      >
+                        <Text className="font-bold">Back</Text>
+                      </TouchableOpacity>
+                    )}
+
+                    <TouchableOpacity
+                      onPress={async () => {
+                        if (hospitalStep === 1) {
+                          // Validate step 1
+                          if (!newHospital.name.trim() || !newHospital.address.trim() || !newHospital.city.trim()) {
+                            Alert.alert('Error', 'Please fill all required fields');
+                            return;
+                          }
+                          setHospitalStep(2);
+                        } else {
+                          // Step 2 - Directly call handleAddHospital which will close modal
+                          await handleAddHospital();
+                        }
+                      }}
+                      className="flex-1 bg-green-500 rounded-xl p-3 items-center justify-center"
+                      disabled={isAddingHospital || uploadingImage}
+                      style={{ opacity: (isAddingHospital || uploadingImage) ? 0.7 : 1 }}
+                    >
+                      {isAddingHospital || uploadingImage ? (
+                        <ActivityIndicator size="small" color="white" />
+                      ) : (
+                        <Text className="text-white font-bold">
+                          {hospitalStep === 1 ? 'Next' : 'Add Hospital'}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </Modal>
+
+            {/* ================= EDIT HOSPITAL MODAL ================= */}
+            <Modal visible={editHospitalModalVisible} animationType="slide" transparent>
+              <View className="flex-1 bg-black/40 items-center justify-center">
+                <View className="bg-white w-[90%] rounded-2xl overflow-hidden max-h-[90%]">
+                  <LinearGradient
+                    colors={['#4f46e5', '#6366f1']}
+                    className="px-4 py-3"
+                  >
+                    <View className="flex-row justify-between items-center">
+                      <Text className="text-white text-xl font-bold">
+                        Edit Hospital
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => setEditHospitalModalVisible(false)}
+                        disabled={uploadingImage}
+                      >
+                        <Text className="text-white text-2xl">✕</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </LinearGradient>
+
+                  <ScrollView className="p-4 max-h-[500px]" showsVerticalScrollIndicator={false}>
+                    {/* Image Upload Section */}
+                    <View className="mb-6 items-center">
+                      <TouchableOpacity
+                        onPress={() => pickImage(true)}
+                        disabled={uploadingImage}
+                        className={`w-32 h-32 rounded-2xl ${
+                          editHospital.localImage || editHospital.picture
+                            ? 'border-2 border-blue-500' 
+                            : 'border-2 border-dashed border-gray-300'
+                        } items-center justify-center overflow-hidden`}
+                      >
+                        {editHospital.localImage ? (
+                          <Image
+                            source={{ uri: editHospital.localImage }}
+                            className="w-full h-full"
+                            resizeMode="cover"
+                          />
+                        ) : editHospital.picture ? (
+                          <Image
+                            source={{ uri: editHospital.picture }}
+                            className="w-full h-full"
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View className="items-center">
+                            <Ionicons name="camera" size={40} color="#9CA3AF" />
+                            <Text className="text-gray-500 mt-2 text-center text-xs">
+                              Upload Hospital Image
+                            </Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                      {uploadingImage && (
+                        <View className="mt-2 flex-row items-center">
+                          <ActivityIndicator size="small" color="#4F46E5" />
+                          <Text className="text-gray-600 ml-2 text-sm">Uploading image...</Text>
+                        </View>
+                      )}
+                      <Text className="text-gray-500 text-xs mt-2">
+                        Tap to change hospital image (optional)
+                      </Text>
+                    </View>
+
+                    <View className="mb-4">
+                      <Text className="font-bold mb-2">Hospital Name</Text>
+                      <TextInput
+                        value={editHospital.name}
+                        onChangeText={text =>
+                          setEditHospital(prev => ({ ...prev, name: text }))
+                        }
+                        className="border border-gray-300 rounded-xl p-3"
+                        editable={!uploadingImage}
+                      />
+                    </View>
+
+                    <View className="mb-4">
+                      <Text className="font-bold mb-2">Address</Text>
+                      <TextInput
+                        value={editHospital.address}
+                        onChangeText={text =>
+                          setEditHospital(prev => ({ ...prev, address: text }))
+                        }
+                        className="border border-gray-300 rounded-xl p-3"
+                        editable={!uploadingImage}
+                      />
+                    </View>
+
+                    <View className="mb-4">
+                      <Text className="font-bold mb-2">City</Text>
+                      <TextInput
+                        value={editHospital.city}
+                        onChangeText={text =>
+                          setEditHospital(prev => ({ ...prev, city: text }))
+                        }
+                        className="border border-gray-300 rounded-xl p-3"
+                        editable={!uploadingImage}
+                      />
+                    </View>
+
+                    <View className="grid grid-cols-2 gap-4 mb-4">
+                      <View>
+                        <Text className="font-bold mb-2">Number of Doctors</Text>
+                        <TextInput
+                          value={editHospital.numberOfDoctors}
+                          onChangeText={text =>
+                            setEditHospital(prev => ({ ...prev, numberOfDoctors: text }))
+                          }
+                          keyboardType="numeric"
+                          className="border border-gray-300 rounded-xl p-3"
+                          editable={!uploadingImage}
+                        />
+                      </View>
+
+                      <View>
+                        <Text className="font-bold mb-2">Number of Beds</Text>
+                        <TextInput
+                          value={editHospital.numberOfBeds}
+                          onChangeText={text =>
+                            setEditHospital(prev => ({ ...prev, numberOfBeds: text }))
+                          }
+                          keyboardType="numeric"
+                          className="border border-gray-300 rounded-xl p-3"
+                          editable={!uploadingImage}
+                        />
+                      </View>
+
+                      <View>
+                        <Text className="font-bold mb-2">Age of Hospital</Text>
+                        <TextInput
+                          value={editHospital.ageOfHospital}
+                          onChangeText={text =>
+                            setEditHospital(prev => ({ ...prev, ageOfHospital: text }))
+                          }
+                          keyboardType="numeric"
+                          className="border border-gray-300 rounded-xl p-3"
+                          editable={!uploadingImage}
+                        />
+                      </View>
+
+                      <View>
+                        <Text className="font-bold mb-2">Rating</Text>
+                        <TextInput
+                          value={editHospital.rating}
+                          onChangeText={text =>
+                            setEditHospital(prev => ({ ...prev, rating: text }))
+                          }
+                          keyboardType="decimal-pad"
+                          className="border border-gray-300 rounded-xl p-3"
+                          editable={!uploadingImage}
+                        />
+                      </View>
+                    </View>
+
+                    <View className="mb-4">
+                      <Text className="font-bold mb-2">About Hospital</Text>
+                      <TextInput
+                        value={editHospital.about}
+                        onChangeText={text =>
+                          setEditHospital(prev => ({ ...prev, about: text }))
+                        }
+                        multiline
+                        numberOfLines={3}
+                        className="border border-gray-300 rounded-xl p-3 h-24"
+                        editable={!uploadingImage}
+                      />
+                    </View>
+
+                    <View className="mb-4">
+                      <Text className="font-bold mb-2">Contact Number</Text>
+                      <TextInput
+                        value={editHospital.contactNumber}
+                        onChangeText={text =>
+                          setEditHospital(prev => ({ ...prev, contactNumber: text }))
+                        }
+                        keyboardType="phone-pad"
+                        className="border border-gray-300 rounded-xl p-3"
+                        editable={!uploadingImage}
+                      />
+                    </View>
+                  </ScrollView>
+
+                  <View className="flex-row border-t p-4">
+                    <TouchableOpacity
+                      onPress={() => setEditHospitalModalVisible(false)}
+                      className="flex-1 border border-gray-300 rounded-xl p-3 mr-2 items-center"
+                      disabled={uploadingImage}
+                    >
+                      <Text className="font-bold">Cancel</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={handleEditHospital}
+                      className="flex-1 bg-green-500 rounded-xl p-3 items-center"
+                      disabled={uploadingImage}
+                      style={{ opacity: uploadingImage ? 0.7 : 1 }}
+                    >
+                      {uploadingImage ? (
+                        <ActivityIndicator size="small" color="white" />
+                      ) : (
+                        <Text className="text-white font-bold">Update Hospital</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </Modal>
+
+            {/* ================= HOSPITAL DETAILS MODAL ================= */}
+            <Modal visible={!!selectedHospital} animationType="slide">
+              <SafeAreaView className="flex-1 bg-white">
+                <ScrollView>
+                  <LinearGradient
+                    colors={['#38bdf8', '#0ea5e9']}
+                    className="px-6 pt-3 pb-3"
+                  >
+                    <TouchableOpacity
+                      onPress={() => {
+                        setSelectedHospital(null);
+                        setSearchDepartment('');
+                      }}
+                      className="self-end"
+                    >
+                      <Text className="text-white text-2xl">✕</Text>
+                    </TouchableOpacity>
+
+                    {selectedHospital && (
+                      <View className="items-center mt-4">
+                        {selectedHospital.picture ? (
+                          <View className="w-24 h-24 bg-white/20 rounded-3xl overflow-hidden border-2 border-white">
+                            <Image
+                              source={{ uri: selectedHospital.picture }}
+                              className="w-full h-full"
+                              resizeMode="cover"
+                            />
+                          </View>
+                        ) : (
+                          <View className="w-24 h-24 bg-white/20 rounded-3xl items-center justify-center">
+                            <Text className="text-5xl">🏥</Text>
+                          </View>
+                        )}
+                        <Text className="text-2xl font-bold text-white mt-4 text-center">
+                          {selectedHospital.name}
+                        </Text>
+                        <Text className="text-indigo-100 mt-1 text-center">
+                          {selectedHospital.city} • {selectedHospital.rating} ⭐
+                        </Text>
+                      </View>
+                    )}
+                  </LinearGradient>
+
+                  {selectedHospital && (
+                    <View className="p-6">
+                      {/* About Section */}
+                      <Text className="text-gray-700 leading-7 mb-6">
+                        {selectedHospital.about || 'No description available.'}
+                      </Text>
+
+                      {/* Hospital Information Card */}
+                      <View className="mb-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-100 shadow-sm">
+                        <View className="flex-row justify-between items-center mb-4">
+                          <Text className="font-bold text-xl text-gray-900">
+                            📋 Hospital Information
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => setSignupModalVisible(true)}
+                            className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2 rounded-lg shadow-sm"
+                            style={{
+                              elevation: 4,
+                              shadowColor: '#10B981',
+                              shadowOffset: { width: 0, height: 2 },
+                              shadowOpacity: 0.3,
+                              shadowRadius: 4,
+                            }}
+                          >
+                            <Text className="text-white font-medium">+ Add Staff</Text>
+                          </TouchableOpacity>
+                        </View>
+                        
+                      <View className="flex-row flex-wrap -mx-2">
+                    {/* Address */}
+                    <View className="w-1/3 px-2 mb-4">
+                      <View className="bg-white rounded-xl p-3 items-center border border-blue-100">
+                        <Ionicons name="location" size={22} color="#4F46E5" />
+                        <Text className="text-xs text-gray-500 mt-1">Address</Text>
+                        <Text className="text-sm font-medium text-center text-gray-900" numberOfLines={2}>
+                          {selectedHospital.address}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* City */}
+                    <View className="w-1/3 px-2 mb-4">
+                      <View className="bg-white rounded-xl p-3 items-center border border-blue-100">
+                        <Ionicons name="business" size={22} color="#4F46E5" />
+                        <Text className="text-xs text-gray-500 mt-1">City</Text>
+                        <Text className="text-sm font-medium text-gray-900">
+                          {selectedHospital.city}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Doctors */}
+                    <View className="w-1/3 px-2 mb-4">
+                      <View className="bg-white rounded-xl p-3 items-center border border-blue-100">
+                        <Ionicons name="people" size={22} color="#4F46E5" />
+                        <Text className="text-xs text-gray-500 mt-1">Doctors</Text>
+                        <Text className="text-sm font-medium text-gray-900">
+                          {selectedHospital.numberOfDoctors}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Beds */}
+                    <View className="w-1/3 px-2 mb-4">
+                      <View className="bg-white rounded-xl p-3 items-center border border-blue-100">
+                        <Ionicons name="bed" size={22} color="#4F46E5" />
+                        <Text className="text-xs text-gray-500 mt-1">Beds</Text>
+                        <Text className="text-sm font-medium text-gray-900">
+                          {selectedHospital.numberOfBeds}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Age */}
+                    <View className="w-1/3 px-2 mb-4">
+                      <View className="bg-white rounded-xl p-3 items-center border border-blue-100">
+                        <Ionicons name="calendar" size={22} color="#4F46E5" />
+                        <Text className="text-xs text-gray-500 mt-1">Age</Text>
+                        <Text className="text-sm font-medium text-gray-900">
+                          {selectedHospital.ageOfHospital} yrs
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Rating */}
+                    <View className="w-1/3 px-2 mb-4">
+                      <View className="bg-white rounded-xl p-3 items-center border border-blue-100">
+                        <Ionicons name="star" size={22} color="#F59E0B" />
+                        <Text className="text-xs text-gray-500 mt-1">Rating</Text>
+                        <Text className="text-sm font-medium text-gray-900">
+                          {selectedHospital.rating} ⭐
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Contact */}
+                    <View className="w-1/3 px-2 mb-4">
+                      <View className="bg-white rounded-xl p-3 items-center border border-blue-100">
+                        <Ionicons name="call" size={22} color="#10B981" />
+                        <Text className="text-xs text-gray-500 mt-1">Contact</Text>
+                        <Text className="text-sm font-medium text-gray-900">
+                          {selectedHospital.contactNumber || 'N/A'}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+
+              {/* Available Doctors Section */}
+                  <View className="mb-6">
+                    <View className="flex-row justify-between items-center mb-4">
+                      <Text className="font-bold text-lg">👩‍⚕️ Available Doctors({doctors.length})</Text>
+                      <View className="flex-row space-x-2">
+                        <TouchableOpacity
+                          onPress={() => openViewDoctorsModal()}
+                          className="bg-indigo-500 px-3 py-1 rounded-lg"
+                        >
+                          <Text className="text-white font-medium">View All Doctors</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => openAddDoctorModal()}
+                          className="bg-green-500 px-3 py-1 rounded-lg"
+                        >
+                          <Text className="text-white font-medium">+ Add Doctor</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
 
         <View className={`${isWeb ? "w-1/3" : "w-full"} flex-row items-center bg-white/80 rounded-xl px-3`}>
           <Ionicons name="search" size={16} color="#6b7280" />
