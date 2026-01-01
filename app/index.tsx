@@ -23,7 +23,7 @@ interface DecodedToken {
   [key: string]: any;
 }
 
-const API_BASE_URL = "http://192.168.0.231:8080/api/auth";
+const API_BASE_URL = "http://192.168.0.200:8080/api/auth";
 
 export default function Index() {
   const [formData, setFormData] = useState({
@@ -92,7 +92,7 @@ export default function Index() {
     else if (role === "ADMIN") router.replace("/(superAdmin)/adminhome");
     else if (role === "RECEIPTIOINIST")
       router.replace("/receptionist");
-    else router.replace("/(hospital)/hospitalhome");
+    else router.replace("/receptionist");
   };
 
   const handleLogin = async () => {
@@ -213,7 +213,7 @@ export default function Index() {
     }
   };
   const handleResetPasswordSubmit = async () => {
-    const BASE_URL = "http://192.168.0.231:8080";
+    const BASE_URL = "http://192.168.0.200:8080";
 
     try {
       if (!isOtpVerified) {
