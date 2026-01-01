@@ -1,15 +1,12 @@
-import { Stack } from "expo-router";
-import React from "react";
+import { Tabs } from "expo-router";
 
-const _layout =() => {
- 
- return (
-  <Stack>
-    <Stack.Screen name="hospitalhome" options={{headerShown:false}}/>
-  </Stack>
+export default function Layout() {
+  return (
+    <Tabs>
+      <Tabs.Screen
+        name="hospitalhome"
+        options={{ headerShown: false }}
+      />
+    </Tabs>
   );
-
 }
-
-
-export default _layout;

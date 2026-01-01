@@ -1,4 +1,4 @@
-import { FontAwesome } from "@expo/vector-icons";
+import { FontAwesome, FontAwesome6 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { LinearGradient } from "expo-linear-gradient";
@@ -22,8 +22,8 @@ interface Hospital {
   city: string;
   departments: string[];
   numberOfDoctors: number;
-  noofbeds: number;
-  contact: string;
+  numberOfBeds: number;
+  contactNumber: string;
   email: string;
   rating: string;
   picture: string;
@@ -42,7 +42,7 @@ export default function ChooseCareHome() {
     try {
       setIsLoading(true);
       const response = await axios.get(
-        "http://192.168.0.126:8080/api/hospitals/all"
+        "http://192.168.0.133:8080/api/hospitals/all"
       );
       setHospitals(response.data);
     } catch (error) {
@@ -82,7 +82,6 @@ export default function ChooseCareHome() {
           locations={[0.36, 1.0]}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
-          className="flex-1"
         >
           <View
             className={`${
@@ -102,6 +101,7 @@ export default function ChooseCareHome() {
                 Available Hospitals
               </Text>
             </View>
+
             <TouchableOpacity
               onPress={handleLogout}
               className="bg-[#2eb8b8] px-4 py-2 rounded-xl mr-4"
@@ -111,88 +111,179 @@ export default function ChooseCareHome() {
           </View>
         </LinearGradient>
 
-        <View
-          className={`flex-row flex-wrap ${
-            isWeb ? "justify-start p-4" : "justify-center mb-8"
-          }`}
-        >
+        <View className={`${isWeb ? "p-4" : "mb-8"}`}>
           {isLoading ? (
             <View className="w-full py-20 items-center">
               <ActivityIndicator size="large" color="#2eb8b8" />
               <Text className="mt-4 text-slate-500">Loading Hospitals...</Text>
             </View>
-          ) : hospitals.length > 0 ? (
+          ) : (
             hospitals.map((hospital) => (
-              <TouchableOpacity
-                key={hospital.id}
-                activeOpacity={0.9}
-                onPress={() =>
-                  router.push({
-                    pathname: "/extrafiles/hospital_details",
-                    params: { id: hospital.id, name: hospital.name },
-                  })
-                }
+              <View
                 className={`${
-                  isWeb ? "w-[400px] m-4" : "w-[330px] mt-6 mx-4"
-                } h-[250px] rounded-3xl overflow-hidden shadow-xl`}
+                  isWeb
+                    ? "w-full mt-8 flex-row h-[340px]"
+                    : "w-[330px] h-[170px] mt-6 mx-4"
+                } rounded-3xl overflow-hidden shadow-xl`}
               >
-                <ImageBackground
-                  source={{
-                    uri:
-                      hospital.picture ||
-                      "https://via.placeholder.com/400x250?text=No+Image",
-                  }}
-                  className="flex-1 justify-end"
-                  resizeMode="cover"
-                >
-                  <View className="absolute inset-0 bg-black/40" />
+                <View className="w-1/3">
+                  <ImageBackground
+                    source={{
+                      uri:
+                        hospital.picture ||
+                        "https://www.carehospitals.com/assets/images/main/malpet-new-inner.webp",
+                    }}
+                    className="flex-1"
+                    resizeMode="cover"
+                  />
+                </View>
 
-                  <View className="p-6">
-                    <Text className="text-white text-2xl font-bold mb-1">
-                      {hospital.name}
-                    </Text>
-
-                    <View className="flex-row items-center mb-2">
-                      <FontAwesome
-                        name="map-marker"
-                        size={14}
-                        color="#38bdf8"
-                      />
-                      <Text className="text-sky-300 ml-2 font-medium">
-                        {hospital.address}
+                <View className="flex-1 px-5 py-4">
+                  <View className="flex-row justify-between items-start mb-3">
+                    <View className="flex-1">
+                      <Text className="text-xl font-bold text-slate-900">
+                        {hospital.name}
                       </Text>
-                    </View>
-
-                    <View className="flex-row flex-wrap mb-3 ">
-                      <Text className="text-white text-[10px] font-semibold bg-white/10 px-2 p-1 rounded-lg">
-                        {hospital.email}
-                      </Text>
-                    </View>
-
-                    <View className="flex-row justify-between items-center border-t border-white/20 pt-3">
-                      <Text className="text-white/80 italic">
-                        {hospital.numberOfDoctors} Doctors Available
-                      </Text>
-                      <View className="bg-white/90 p-2 rounded-full">
+                      <View className="flex-row items-center mt-1">
                         <FontAwesome
-                          name="arrow-right"
-                          size={12}
-                          color="#0f172a"
+                          name="map-marker"
+                          size={14}
+                          color="#2eb8b8"
                         />
+                        <Text className="text-slate-500 ml-2 text-sm">
+                          {hospital.address}, {hospital.city}
+                        </Text>
                       </View>
                     </View>
+
+                    <View className="bg-yellow-50 px-3 py-1 rounded-lg flex-row items-center">
+                      <FontAwesome name="star" size={14} color="#f59e0b" />
+                      <Text className="ml-1 font-bold text-yellow-700">
+                        {hospital.rating}
+                      </Text>
+                    </View>
                   </View>
-                </ImageBackground>
-              </TouchableOpacity>
+                  <View className="flex-row mr-8">
+                    <InfoCard
+                      icon="user-md"
+                      label="Doctors"
+                      value={hospital.numberOfDoctors}
+                      color="bg-blue-100"
+                      bgColor="#d6e0f5"
+                      iconColor="#2563eb"
+                    />
+                    <InfoCard
+                      icon="bed"
+                      label="Beds"
+                      value={hospital.numberOfBeds}
+                      bgColor="#ffcce6"
+                      iconColor="#e60073"
+                    />
+                    <InfoCard
+                      icon="phone"
+                      label="Contact"
+                      value={hospital.contactNumber}
+                      color="bg-purple-50"
+                      bgColor="#e6ccff"
+                      iconColor="#8b5cf6"
+                    />
+                    <InfoCard
+                      icon="envelope"
+                      label="email"
+                      value={hospital.email || "@gmail.com"}
+                      color="bg-red-100"
+                      bgColor="#ffcccc"
+                      iconColor="#ff0000"
+                    />
+                    <InfoCard
+                      icon="clock-o"
+                      label="timing"
+                      value="Open 24/7"
+                      color="bg-pink-100"
+                      bgColor="#ccffcc"
+                      iconColor="#10b981"
+                    />
+                  </View>
+
+                  <View>
+                    <Text className="text-xl font-bold text-slate-900 mb-2">
+                      About Hospital
+                    </Text>
+                    <Text className="text-slate-600 leading-6 pb-8">
+                      {hospital.name} is a premier healthcare facility located
+                      in {hospital.city}. We provide world-class medical
+                      services across multiple departments Ourmission is to
+                      provide compassionate care with modern technology.
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/extrafiles/department_details",
+                        params: { id: hospital.id, name: hospital.name },
+                      })
+                    }
+                    className="w-1/3 mt-4 mb-2"
+                  >
+                    <LinearGradient
+                      colors={[
+                        "rgba(177, 235, 252, 0.86)",
+                        "rgba(90, 250, 215, 0.86)",
+                      ]}
+                      start={{ x: 0, y: 0.5 }}
+                      end={{ x: 1, y: 0.5 }}
+                      className="py-2 rounded-2xl flex-row justify-center items-center"
+                    >
+                      <FontAwesome6
+                        name="user-doctor"
+                        size={20}
+                        color="#334155"
+                      />
+                      <Text className="text-slate-700 text-sm  font-bold ml-3">
+                        Available Departments
+                      </Text>
+                      <FontAwesome
+                        name="arrow-right"
+                        size={15}
+                        color="#334155"
+                        className={`${isWeb ? "ml-4" : ""}`}
+                      />
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </View>
             ))
-          ) : (
-            <View className="w-full py-20 items-center">
-              <FontAwesome name="hospital-o" size={50} color="#cbd5e1" />
-              <Text className="mt-4 text-slate-400">No hospitals found.</Text>
-            </View>
           )}
         </View>
       </ScrollView>
     </View>
   );
 }
+const isWeb = Platform.OS === "web";
+const InfoCard = ({ icon, label, value, color, iconColor, bgColor }: any) => (
+  <View
+    style={{ backgroundColor: bgColor }}
+    className={`${
+      isWeb
+        ? "flex-1 py-4 m-4 rounded-2xl items-center border  border-white/50"
+        : "flex-1 py-4 m-4 rounded-2xl items-center border  border-white/50"
+    }`}
+  >
+    <FontAwesome name={icon} size={20} color={iconColor} />
+    <Text className="text-slate-900 font-bold mt-2">{value}</Text>
+    <Text className="text-slate-500 text-[10px] uppercase font-semibold">
+      {label}
+    </Text>
+  </View>
+);
+
+const ContactItem = ({ icon, text }: any) => (
+  <View className="flex-row items-center mb-4">
+    <View className="w-8">
+      <FontAwesome name={icon} size={16} color="#64748b" />
+    </View>
+    <Text className="text-slate-700 font-medium">{text}</Text>
+  </View>
+);

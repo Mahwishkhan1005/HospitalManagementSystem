@@ -30,7 +30,7 @@ const ReceptionistHome = () => {
   const [actionLoading, setActionLoading] = useState(false);
 
   const isWeb = Platform.OS === "web";
-  const BASE_URL = "http://192.168.0.217:8081/api/reception/appointments";
+  const BASE_URL = "http://192.168.0.222:8081/api/reception/appointments";
 
   useEffect(() => {
     fetchAppointments();
@@ -48,20 +48,29 @@ const ReceptionistHome = () => {
     }
   };
 
-  const handleUpdateStatus = async (appointmentId: number, action: 'approve' | 'reject') => {
+  const handleUpdateStatus = async (
+    appointmentId: number,
+    action: "approve" | "reject"
+  ) => {
     try {
       setActionLoading(true);
-      const response = await axios.put(`${BASE_URL}/${appointmentId}/${action}`);
+      const response = await axios.put(
+        `${BASE_URL}/${appointmentId}/${action}`
+      );
       if (response.status === 200) {
-        const msg = `Appointment ${action === 'approve' ? 'Approved' : 'Rejected'} successfully!`;
+        const msg = `Appointment ${
+          action === "approve" ? "Approved" : "Rejected"
+        } successfully!`;
         isWeb ? window.alert(msg) : Alert.alert("Success", msg);
-        
+
         const refreshedData = await axios.get(BASE_URL);
         setAppointments(refreshedData.data);
-        
-        const updatedAppt = refreshedData.data.find((a: any) => a.appointmentId === appointmentId);
+
+        const updatedAppt = refreshedData.data.find(
+          (a: any) => a.appointmentId === appointmentId
+        );
         setSelectedAppt(updatedAppt);
-        setModalVisible(false)
+        setModalVisible(false);
       }
     } catch (error) {
       const msg = `Failed to ${action} appointment.`;
@@ -73,8 +82,11 @@ const ReceptionistHome = () => {
 
   const filteredAppointments = useMemo(() => {
     return appointments.filter((item) => {
-      const matchesSearch = item.patientName.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesDate = selectedDate === "All" || item.appointmentDate === selectedDate;
+      const matchesSearch = item.patientName
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      const matchesDate =
+        selectedDate === "All" || item.appointmentDate === selectedDate;
       return matchesSearch && matchesDate;
     });
   }, [searchQuery, selectedDate, appointments]);
@@ -94,12 +106,23 @@ const ReceptionistHome = () => {
   };
 
   const renderAppointmentItem = ({ item }: { item: any }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       activeOpacity={0.7}
-      onPress={() => { setSelectedAppt(item); setModalVisible(true); }}
+      onPress={() => {
+        setSelectedAppt(item);
+        setModalVisible(true);
+      }}
       className="bg-white mx-3 my-2 rounded-2xl shadow-md border border-gray-100 overflow-hidden"
     >
-      <View className={`h-1.5 ${item.status === 'PENDING' ? 'bg-orange-400' : item.status === 'REJECTED' ? 'bg-red-500' : 'bg-teal-500'}`} />
+      <View
+        className={`h-1.5 ${
+          item.status === "PENDING"
+            ? "bg-orange-400"
+            : item.status === "REJECTED"
+            ? "bg-red-500"
+            : "bg-teal-500"
+        }`}
+      />
       <View className="p-4">
         <View className="flex-row justify-between items-start mb-2">
           <View className="flex-row items-center">
@@ -107,12 +130,18 @@ const ReceptionistHome = () => {
               <Ionicons name="person" size={20} color="#0d9488" />
             </View>
             <View className="ml-3">
-              <Text className="text-lg font-bold text-gray-800">{item.patientName}</Text>
-              <Text className="text-xs text-gray-400">ID: {item.appointmentId} • User ID: {item.userid}</Text>
+              <Text className="text-lg font-bold text-gray-800">
+                {item.patientName}
+              </Text>
+              <Text className="text-xs text-gray-400">
+                ID: {item.appointmentId} • User ID: {item.userid}
+              </Text>
             </View>
           </View>
           <View className="bg-teal-50 px-2 py-1 rounded-md">
-            <Text className="text-[10px] font-bold text-teal-700">{item.timeSlot.replace(/_/g, ' ')}</Text>
+            <Text className="text-[10px] font-bold text-teal-700">
+              {item.timeSlot.replace(/_/g, " ")}
+            </Text>
           </View>
         </View>
 
@@ -124,9 +153,27 @@ const ReceptionistHome = () => {
         </View>
 
         <View className="flex-row justify-between items-center mt-3 pt-2 border-t border-gray-50">
-          <Text className="text-[11px] text-gray-400 font-medium">Doctor ID: {item.docId}</Text>
-          <View className={`px-2 py-0.5 rounded ${item.status === 'PENDING' ? 'bg-orange-50' : item.status === 'REJECTED' ? 'bg-red-50' : 'bg-teal-50'}`}>
-            <Text className={`text-[10px] font-bold ${item.status === 'PENDING' ? 'text-orange-600' : item.status === 'REJECTED' ? 'text-red-600' : 'text-teal-600'}`}>
+          <Text className="text-[11px] text-gray-400 font-medium">
+            Doctor ID: {item.docId}
+          </Text>
+          <View
+            className={`px-2 py-0.5 rounded ${
+              item.status === "PENDING"
+                ? "bg-orange-50"
+                : item.status === "REJECTED"
+                ? "bg-red-50"
+                : "bg-teal-50"
+            }`}
+          >
+            <Text
+              className={`text-[10px] font-bold ${
+                item.status === "PENDING"
+                  ? "text-orange-600"
+                  : item.status === "REJECTED"
+                  ? "text-red-600"
+                  : "text-teal-600"
+              }`}
+            >
               {item.status}
             </Text>
           </View>
@@ -141,29 +188,51 @@ const ReceptionistHome = () => {
         colors={["rgba(177,235,252,0.86)", "rgba(90,250,215,0.86)"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        className={`${isWeb ? "px-10 py-5" : "px-5 pt-12 pb-6"} rounded-b-[30px] shadow-lg`}
+        className={`${
+          isWeb ? "px-10 py-5" : "px-5 pt-12 pb-6"
+        } rounded-b-[30px] shadow-lg`}
       >
         <View className="flex-row justify-between items-center mb-4">
           <View className="flex-row items-center">
             <FontAwesome name="heartbeat" size={26} color="#0d9488" />
-            <Text className="ml-2 text-2xl font-bold text-gray-800">WECARE</Text>
+            <Text className="ml-2 text-2xl font-bold text-gray-800">
+              WECARE
+            </Text>
           </View>
           <View className="flex-row gap-3">
-            <TouchableOpacity onPress={() => router.navigate("/receptionist")} className="bg-white/40 p-2 rounded-full">
+            <TouchableOpacity
+              onPress={() => router.navigate("/receptionist")}
+              className="bg-white/40 p-2 rounded-full"
+            >
               <Ionicons name="home" size={18} color="#374151" />
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleLogout} className="flex-row items-center bg-white/40 px-3 py-1.5 rounded-full">
+            <TouchableOpacity
+              onPress={handleLogout}
+              className="flex-row items-center bg-white/40 px-3 py-1.5 rounded-full"
+            >
               <FontAwesome name="sign-out" size={14} color="#374151" />
-              <Text className="ml-2 text-xs font-semibold text-gray-700">Logout</Text>
+              <Text className="ml-2 text-xs font-semibold text-gray-700">
+                Logout
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
-        <View className={`${isWeb ? "flex-row justify-between items-end" : ""}`}>
+        <View
+          className={`${isWeb ? "flex-row justify-between items-end" : ""}`}
+        >
           <View>
-            <Text className="text-lg font-bold text-gray-700">Receptionist Desk</Text>
-            <Text className="text-[11px] italic text-gray-600">Manage daily appointments efficiently</Text>
+            <Text className="text-lg font-bold text-gray-700">
+              Receptionist Desk
+            </Text>
+            <Text className="text-[11px] italic text-gray-600">
+              Manage daily appointments efficiently
+            </Text>
           </View>
-          <View className={`${isWeb ? "w-1/3" : "w-full"} flex-row items-center bg-white/80 mt-3 rounded-xl px-3 shadow-sm`}>
+          <View
+            className={`${
+              isWeb ? "w-1/3" : "w-full"
+            } flex-row items-center bg-white/80 mt-3 rounded-xl px-3 shadow-sm`}
+          >
             <Ionicons name="search" size={16} color="#6b7280" />
             <TextInput
               placeholder="Search patients..."
@@ -182,9 +251,19 @@ const ReceptionistHome = () => {
             <TouchableOpacity
               key={date}
               onPress={() => setSelectedDate(date)}
-              className={`mr-2 px-4 py-2 rounded-full border ${selectedDate === date ? "bg-teal-500 border-teal-600" : "bg-white border-gray-200"}`}
+              className={`mr-2 px-4 py-2 rounded-full border ${
+                selectedDate === date
+                  ? "bg-teal-500 border-teal-600"
+                  : "bg-white border-gray-200"
+              }`}
             >
-              <Text className={`text-xs font-semibold ${selectedDate === date ? "text-white" : "text-gray-600"}`}>{date}</Text>
+              <Text
+                className={`text-xs font-semibold ${
+                  selectedDate === date ? "text-white" : "text-gray-600"
+                }`}
+              >
+                {date}
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -201,22 +280,33 @@ const ReceptionistHome = () => {
             keyExtractor={(item) => item.appointmentId.toString()}
             renderItem={renderAppointmentItem}
             contentContainerStyle={{ paddingBottom: 30 }}
-            ListEmptyComponent={<Text className="text-center mt-20 text-gray-400">No appointments found</Text>}
+            ListEmptyComponent={
+              <Text className="text-center mt-20 text-gray-400">
+                No appointments found
+              </Text>
+            }
           />
         )}
       </View>
 
       {/* -------------------- DETAIL MODAL -------------------- */}
-      <Modal animationType="fade" transparent visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+      <Modal
+        animationType="fade"
+        transparent
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
         <View className="flex-1 justify-center bg-black/60 p-6">
-          <View 
+          <View
             className={`bg-white rounded-3xl overflow-hidden shadow-2xl self-center ${
-              isWeb ? 'w-[450px] max-h-[85%]' : 'w-full max-h-[90%]'
+              isWeb ? "w-[450px] max-h-[85%]" : "w-full max-h-[90%]"
             }`}
           >
             {/* Modal Header */}
             <View className="bg-teal-600 p-4 flex-row justify-between items-center">
-              <Text className="text-white font-bold text-lg">Full Patient Profile</Text>
+              <Text className="text-white font-bold text-lg">
+                Full Patient Profile
+              </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Ionicons name="close-circle" size={28} color="white" />
               </TouchableOpacity>
@@ -226,16 +316,44 @@ const ReceptionistHome = () => {
             <ScrollView className="p-6" showsVerticalScrollIndicator={false}>
               {selectedAppt && (
                 <View className="space-y-4">
-                  <ModalDataRow label="Full Name" value={selectedAppt.patientName} />
-                  <ModalDataRow label="Appointment ID" value={selectedAppt.appointmentId} />
+                  <ModalDataRow
+                    label="Full Name"
+                    value={selectedAppt.patientName}
+                  />
+                  <ModalDataRow
+                    label="Appointment ID"
+                    value={selectedAppt.appointmentId}
+                  />
                   <ModalDataRow label="User ID" value={selectedAppt.userid} />
-                  <ModalDataRow label="Doctor Assigned (ID)" value={selectedAppt.docId} />
-                  <ModalDataRow label="Contact Number" value={selectedAppt.phoneNumber} />
-                  <ModalDataRow label="Appointment Date" value={selectedAppt.appointmentDate} />
-                  <ModalDataRow label="Time Slot" value={selectedAppt.timeSlot.replace(/_/g, ' ')} />
-                  <ModalDataRow label="Reported Issue" value={selectedAppt.issue} />
-                  <ModalDataRow label="Residential Address" value={selectedAppt.address} />
-                  <ModalDataRow label="Current Status" value={selectedAppt.status} isStatus />
+                  <ModalDataRow
+                    label="Doctor Assigned (ID)"
+                    value={selectedAppt.docId}
+                  />
+                  <ModalDataRow
+                    label="Contact Number"
+                    value={selectedAppt.phoneNumber}
+                  />
+                  <ModalDataRow
+                    label="Appointment Date"
+                    value={selectedAppt.appointmentDate}
+                  />
+                  <ModalDataRow
+                    label="Time Slot"
+                    value={selectedAppt.timeSlot.replace(/_/g, " ")}
+                  />
+                  <ModalDataRow
+                    label="Reported Issue"
+                    value={selectedAppt.issue}
+                  />
+                  <ModalDataRow
+                    label="Residential Address"
+                    value={selectedAppt.address}
+                  />
+                  <ModalDataRow
+                    label="Current Status"
+                    value={selectedAppt.status}
+                    isStatus
+                  />
                 </View>
               )}
             </ScrollView>
@@ -243,21 +361,41 @@ const ReceptionistHome = () => {
             {/* PERSISTENT ACTION BUTTONS */}
             {selectedAppt && (
               <View className="flex-row p-4 border-t border-gray-100 gap-3">
-                <TouchableOpacity 
-                  onPress={() => handleUpdateStatus(selectedAppt.appointmentId, 'reject')}
+                <TouchableOpacity
+                  onPress={() =>
+                    handleUpdateStatus(selectedAppt.appointmentId, "reject")
+                  }
                   disabled={actionLoading}
-                  className={`flex-1 py-3 rounded-xl items-center ${selectedAppt.status === 'REJECTED' ? 'bg-red-700' : 'bg-red-500'}`}
+                  className={`flex-1 py-3 rounded-xl items-center ${
+                    selectedAppt.status === "REJECTED"
+                      ? "bg-red-700"
+                      : "bg-red-500"
+                  }`}
                 >
-                  <Text className="text-white font-bold">{selectedAppt.status === 'REJECTED' ? 'Rejected' : 'Reject'}</Text>
+                  <Text className="text-white font-bold">
+                    {selectedAppt.status === "REJECTED" ? "Rejected" : "Reject"}
+                  </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
-                  onPress={() => handleUpdateStatus(selectedAppt.appointmentId, 'approve')}
+                <TouchableOpacity
+                  onPress={() =>
+                    handleUpdateStatus(selectedAppt.appointmentId, "approve")
+                  }
                   disabled={actionLoading}
-                  className={`flex-1 py-3 rounded-xl items-center ${selectedAppt.status === 'APPROVED' ? 'bg-teal-800' : 'bg-teal-600'}`}
+                  className={`flex-1 py-3 rounded-xl items-center ${
+                    selectedAppt.status === "APPROVED"
+                      ? "bg-teal-800"
+                      : "bg-teal-600"
+                  }`}
                 >
-                  {actionLoading ? <ActivityIndicator color="white" size="small" /> : (
-                    <Text className="text-white font-bold">{selectedAppt.status === 'APPROVED' ? 'Approved' : 'Approve'}</Text>
+                  {actionLoading ? (
+                    <ActivityIndicator color="white" size="small" />
+                  ) : (
+                    <Text className="text-white font-bold">
+                      {selectedAppt.status === "APPROVED"
+                        ? "Approved"
+                        : "Approve"}
+                    </Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -289,8 +427,16 @@ const DetailIconRow = ({ icon, text }: any) => (
 
 const ModalDataRow = ({ label, value, isStatus }: any) => (
   <View className="border-b border-gray-50 pb-2 mb-2">
-    <Text className="text-[10px] uppercase font-bold text-gray-400 mb-1">{label}</Text>
-    <Text className={`text-sm font-medium ${isStatus ? 'text-teal-600 font-bold' : 'text-gray-800'}`}>{value}</Text>
+    <Text className="text-[10px] uppercase font-bold text-gray-400 mb-1">
+      {label}
+    </Text>
+    <Text
+      className={`text-sm font-medium ${
+        isStatus ? "text-teal-600 font-bold" : "text-gray-800"
+      }`}
+    >
+      {value}
+    </Text>
   </View>
 );
 

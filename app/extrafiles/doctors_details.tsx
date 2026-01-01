@@ -30,7 +30,7 @@ export default function HospitalDetails() {
     {}
   );
   const PATIENT_ID = 1;
-  const BASE_URL = "http://192.168.0.215:8081";
+  const BASE_URL = "http://192.168.0.222:8081";
 
   const [formData, setFormData] = useState({
     patientName: "",
@@ -46,7 +46,7 @@ export default function HospitalDetails() {
       setFetchingDoctors(true);
 
       const response = await fetch(
-        `http://192.168.0.126:8080/api/doctors/department/${id}`
+        `http://192.168.0.133:8080/api/doctors/department/${id}`
       );
 
       if (response.ok) {
@@ -111,10 +111,13 @@ export default function HospitalDetails() {
     const payload = {
       ...formData,
       appointmentDate: dateToSend,
+      doctorId: selectedDoctor.id,
     };
+    const patientId = PATIENT_ID;
+    const receptionId = 2;
+    const doctorId = selectedDoctor.id;
 
-    const url = `http://192.168.0.216:8081/api/patient/appointments/1/2/${PATIENT_ID}`;
-
+    const url = `${BASE_URL}/api/patient/appointments/${patientId}/${receptionId}/101`;
     try {
       const response = await fetch(url, {
         method: "POST",
@@ -126,6 +129,10 @@ export default function HospitalDetails() {
       });
 
       if (response.ok) {
+        notifySuccess(
+          "great",
+          "your appointment details submitted successfully"
+        );
         const newAppointment = {
           ...formData,
           doctorId: selectedDoctor.id,
@@ -134,7 +141,7 @@ export default function HospitalDetails() {
 
         setBookingStatus((prev) => ({
           ...prev,
-          [selectedDoctor.id]: "booked",
+          [String(selectedDoctor.id)]: "booked",
         }));
 
         const existingData = await AsyncStorage.getItem("my_appointments");
@@ -157,6 +164,7 @@ export default function HospitalDetails() {
           issue: "",
         });
       } else {
+        window.alert("enter all valid details ");
         const err = await response.text();
         console.log("Server Error:", err);
         Alert.alert("Failed", "Server rejected the booking.");
@@ -173,11 +181,25 @@ export default function HospitalDetails() {
     const [year, month, day] = dateString.split("-");
     return `${day}-${month}-${year}`;
   };
+  const notifySuccess = (title: string, message: string) => {
+    if (isWeb) {
+      window.alert(`${title}: ${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-white overflow-hidden">
+      {/* <ImageBackground
+        source={{
+          uri: "https://static.wixstatic.com/media/f38894_57e85570c334409489b69ac509228b4b~mv2.jpg/v1/fill/w_535,h_306,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/f38894_57e85570c334409489b69ac509228b4b~mv2.jpg",
+        }}
+        className={`${isWeb ? "flex-1 " : "flex-1"}`}
+        resizeMode="cover"
+      > */}
       <ScrollView className="flex-1">
         <LinearGradient
-          colors={["rgba(177, 235, 252, 0.86)", "rgba(90, 250, 215, 0.86)"]}
+          colors={["rgba(177, 235, 252, 0.86)", "rgba(90, 250, 222, 0.86)"]}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           className="p-6"
@@ -198,41 +220,78 @@ export default function HospitalDetails() {
           Our Specialists
         </Text>
 
-        {doctors.map((doctor) => {
-          const status = bookingStatus[doctor.id] || "idle";
-          return (
-            <View
-              key={doctor.id}
-              className="flex-row items-center bg-slate-50 p-4 rounded-2xl mb-4 border border-slate-100 mx-4"
-            >
-              <Image
-                source={{ uri: doctor.image }}
-                className="w-16 h-16 rounded-full bg-gray-200 mr-4"
-              />
-              <View className="flex-1">
-                <Text className="text-lg font-bold text-slate-800">
-                  {doctor.name}
-                </Text>
-                <Text className="text-[#2eb8b8]">{doctor.specialty}</Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => handleBookPress(doctor)}
-                disabled={status !== "idle"}
-                className={`px-4 py-2 rounded-lg ${
-                  status === "pending"
-                    ? "bg-orange-400"
-                    : status === "booked"
-                    ? "bg-blue-400"
-                    : "bg-[#2eb8b8]"
+        {fetchingDoctors ? (
+          <View className="py-20 items-center justify-center">
+            <ActivityIndicator size="large" color="#2eb8b8" />
+            <Text className="mt-4 text-slate-500 font-medium">
+              Finding the best specialists...
+            </Text>
+          </View>
+        ) : doctors.length > 0 ? (
+          doctors.map((doctor) => {
+            const status = bookingStatus[String(doctor.id)] || "idle";
+            return (
+              <View
+                key={doctor.id}
+                className={`${
+                  isWeb
+                    ? "flex-row items-center w-2/3 bg-slate-50 p-4 rounded-2xl mb-4 border border-slate-100 mx-8"
+                    : "flex-row items-center bg-slate-50 p-4 rounded-2xl mb-4 border border-slate-100 mx-4"
                 }`}
               >
-                <Text className="text-white font-bold capitalize">
-                  {status === "idle" ? "Book" : status}
-                </Text>
-              </TouchableOpacity>
+                <Image
+                  source={{ uri: doctor.image }}
+                  className="w-16 h-16 rounded-full bg-gray-200 mr-4"
+                />
+                <View className="flex-1">
+                  <Text className="text-lg font-bold text-slate-800">
+                    {doctor.name}
+                  </Text>
+                  <Text className="text-[#2eb8b8] my-1">
+                    {doctor.specialization}
+                  </Text>
+                  <Text className="text-slate-500">
+                    {doctor.experience} years experience
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => handleBookPress(doctor)}
+                  disabled={status !== "idle"}
+                  className={`px-4 py-2 rounded-lg ${
+                    status === "pending"
+                      ? "bg-orange-400"
+                      : status === "booked"
+                      ? "bg-blue-400"
+                      : "bg-[#2eb8b8]"
+                  }`}
+                >
+                  <Text className="text-white font-bold capitalize">
+                    {status === "idle" ? "Book" : status}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })
+        ) : (
+          <View className="items-center justify-center py-20 px-10">
+            <View className="bg-slate-100 p-8 rounded-full mb-6">
+              <FontAwesome name="user-md" size={60} color="#cbd5e1" />
             </View>
-          );
-        })}
+            <Text className="text-xl font-bold text-slate-800 text-center mb-2">
+              No Doctors Available
+            </Text>
+            <Text className="text-slate-500 text-center leading-relaxed mb-8">
+              We couldn't find any specialists for this department at the
+              moment. Please check back later or try another department.
+            </Text>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="bg-[#2eb8b8] px-10 py-3 rounded-2xl shadow-sm"
+            >
+              <Text className="text-white font-bold">Go Back</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
 
       <Modal animationType="slide" transparent={true} visible={modalVisible}>
@@ -256,6 +315,7 @@ export default function HospitalDetails() {
               <InputField
                 label="Patient Name"
                 value={formData.patientName}
+                required={true}
                 onChange={(val: string) =>
                   setFormData({ ...formData, patientName: val })
                 }
@@ -264,6 +324,7 @@ export default function HospitalDetails() {
               <InputField
                 label="Phone Number"
                 value={formData.phoneNumber}
+                required={true}
                 onChange={(val: string) =>
                   setFormData({ ...formData, phoneNumber: val })
                 }
@@ -318,6 +379,7 @@ export default function HospitalDetails() {
               <InputField
                 label="Address"
                 value={formData.address}
+                required={true}
                 onChange={(val: string) =>
                   setFormData({ ...formData, address: val })
                 }
@@ -326,6 +388,7 @@ export default function HospitalDetails() {
               <InputField
                 label="Issue"
                 value={formData.issue}
+                required={true}
                 onChange={(val: string) =>
                   setFormData({ ...formData, issue: val })
                 }
@@ -358,10 +421,14 @@ const InputField = ({
   value,
   onChange,
   placeholder,
+  required,
   keyboardType = "default",
 }: any) => (
   <View className="mb-4">
-    <Text className="text-slate-600 font-bold mb-2">{label}</Text>
+    <View className="flex-row">
+      <Text className="text-slate-600 font-bold">{label}</Text>
+      {required && <Text className="text-red-500 ml-1 font-bold">*</Text>}
+    </View>
     <TextInput
       className="border border-slate-200 p-3 rounded-xl bg-slate-50"
       placeholder={placeholder}
