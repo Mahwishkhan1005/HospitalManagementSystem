@@ -1,16 +1,12 @@
-import React, { Component } from "react";
-import { Text, View } from "react-native";
+import { Tabs } from "expo-router";
 
-export class _layout extends Component {
-  render() {
-    return (
-      <View>
-        <Text> textInComponent </Text>
-      </View>
-    );
-  }
+export default function Layout() {
+  return (
+    <Tabs>
+      <Tabs.Screen
+        name="hospitalhome"
+        options={{ headerShown: false }}
+      />
+    </Tabs>
+  );
 }
-
-export default _layout;
-
-
