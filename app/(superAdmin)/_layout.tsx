@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
@@ -19,3 +20,18 @@ const _layout =() => {
   )
 }
 export default _layout;
+=======
+// import { Component } from "react";
+
+// export class _layout extends Component {
+//   // render() {
+//   //   return (
+//   //     <View>
+//   //       <Text> textInComponent </Text>
+//   //     </View>
+//   //   );
+//   // }
+// }
+
+// export default _layout;
+>>>>>>> mahwish

@@ -18,18 +18,13 @@ import {
   View,
 } from "react-native";
 
-/* -------------------- CONFIGURATION -------------------- */
-// On Android Emulators, 10.0.2.2 is the alias for your computer's localhost.
-// For physical Android devices, use your actual IP (192.168.0.222).
-const BASE_URL = "http://192.168.0.222:8081/api/doctor/appointments";
+const BASE_URL = "http://192.168.0.186:8081/api/doctor/appointments";
 
 const HospitalHome = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  // Modal & Update States
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedAppt, setSelectedAppt] = useState<any>(null);
   const [doctorNotes, setDoctorNotes] = useState("");
@@ -40,26 +35,38 @@ const HospitalHome = () => {
   /* -------------------- LOGOUT -------------------- */
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem("AccessToken");
+      // Clear both the Token and the Role on logout
+      await AsyncStorage.multiRemove(["AccessToken", "userRole"]);
       router.replace("/");
     } catch (e) {
       console.error("Logout failed", e);
     }
   };
 
-  /* -------------------- FETCH API DATA -------------------- */
+  /* -------------------- FETCH API DATA (WITH JWT) -------------------- */
   const fetchAppointments = async () => {
     try {
       setLoading(true);
+      
+      // 1. Get the JWT token from storage
+      const token = await AsyncStorage.getItem("AccessToken");
+
+      // 2. Add the token to the Authorization header
       const response = await axios.get(BASE_URL, {
-        timeout: 10000, // 10 seconds timeout for Android network issues
+        timeout: 10000,
+        headers: {
+          Authorization: `Bearer ${token}`, // Key addition for JWT
+        },
       });
+      
       setAppointments(response.data || []);
     } catch (error: any) {
       console.error("Fetch Error:", error.message);
-      // Helpful error for Android users
-      if (!isWeb && error.message.includes("Network Error")) {
-        Alert.alert("Network Error", "Cannot reach the server. Ensure your phone and PC are on the same Wi-Fi.");
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        Alert.alert("Session Expired", "Please login again.");
+        handleLogout();
+      } else if (!isWeb && error.message.includes("Network Error")) {
+        Alert.alert("Network Error", "Cannot reach the server.");
       }
     } finally {
       setLoading(false);
@@ -76,7 +83,7 @@ const HospitalHome = () => {
     fetchAppointments();
   };
 
-  /* -------------------- UPDATE LOGIC -------------------- */
+  /* -------------------- UPDATE LOGIC (WITH JWT) -------------------- */
   const handleOpenConsultation = (appt: any) => {
     setSelectedAppt(appt);
     setDoctorNotes(appt.doctorNotes || "");
@@ -88,6 +95,8 @@ const HospitalHome = () => {
 
     try {
       setUpdateLoading(true);
+      const token = await AsyncStorage.getItem("AccessToken"); // Get token for update request
+
       const payload = {
         consultationStatus: "COMPLETED",
         doctorNotes: doctorNotes,
@@ -96,7 +105,12 @@ const HospitalHome = () => {
       const response = await axios.put(
         `${BASE_URL}/${selectedAppt.appointmentId}/consultation`,
         payload,
-        { headers: { "Content-Type": "application/json" } }
+        { 
+          headers: { 
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}` // Key addition for JWT
+          } 
+        }
       );
 
       if (response.status === 200) {
