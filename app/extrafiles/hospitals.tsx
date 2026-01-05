@@ -15,6 +15,37 @@ import {
   View,
 } from "react-native";
 
+const SAMPLE_HOSPITALS: Hospital[] = [
+  {
+    id: "1",
+    name: "City General Hospital",
+    address: "123 Healthcare Ave",
+    city: "Metropolis",
+    departments: ["Cardiology", "Neurology", "Pediatrics"],
+    numberOfDoctors: 45,
+    numberOfBeds: 200,
+    contactNumber: "+1 555-0123",
+    email: "info@citygeneral.com",
+    rating: "4.8",
+    picture:
+      "https://www.carehospitals.com/assets/images/main/malpet-new-inner.webp",
+  },
+  {
+    id: "2",
+    name: "St. Mary's Medical Center",
+    address: "456 Wellness Blvd",
+    city: "Gotham",
+    departments: ["Orthopedics", "Emergency", "Oncology"],
+    numberOfDoctors: 32,
+    numberOfBeds: 150,
+    contactNumber: "+1 555-0456",
+    email: "contact@stmarys.org",
+    rating: "4.5",
+    picture:
+      "https://www.carehospitals.com/assets/images/main/hitech-city-inner.webp",
+  },
+];
+
 interface Hospital {
   id: string;
   name: string;
@@ -42,13 +73,17 @@ export default function ChooseCareHome() {
     try {
       setIsLoading(true);
       const response = await axios.get(
-        "http://192.168.0.133:8080/api/hospitals/all"
+        "http://192.168.0.133:8080/api/hospitals/all",
+        { timeout: 5000 }
       );
       setHospitals(response.data);
     } catch (error) {
-      console.error("Error fetching hospitals:", error);
-      const errorMsg = "Could not load hospitals. Please try again later.";
-      isWeb ? window.alert(errorMsg) : Alert.alert("Error", errorMsg);
+      console.error("Error fetching hospitals, loading sample data:", error);
+
+      setHospitals(SAMPLE_HOSPITALS);
+
+      const errorMsg = "Backend unreachable. Loading demo data for testing.";
+      isWeb ? console.warn(errorMsg) : Alert.alert("Demo Mode", errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -86,14 +121,14 @@ export default function ChooseCareHome() {
           <View
             className={`${
               isWeb
-                ? "flex-row h-[60px] justify-between items-center"
-                : "flex-row h-[80px] justify-between items-center pt-8"
+                ? "flex-row h-[60px] justify-between items-center px-4"
+                : "flex-row h-[100px] justify-between items-center pt-8 px-4"
             }`}
           >
             <View className="flex-row items-center">
               <TouchableOpacity
                 onPress={() => router.push("/(patients)/patienthome")}
-                className={`${isWeb ? "m-4" : "m-2 mt-3"}`}
+                className="mr-4"
               >
                 <FontAwesome name="chevron-left" size={20} color="#334155" />
               </TouchableOpacity>
@@ -104,7 +139,7 @@ export default function ChooseCareHome() {
 
             <TouchableOpacity
               onPress={handleLogout}
-              className="bg-[#2eb8b8] px-4 py-2 rounded-xl mr-4"
+              className="bg-[#2eb8b8] px-4 py-2 rounded-xl"
             >
               <Text className="text-white font-bold">Logout</Text>
             </TouchableOpacity>
@@ -120,24 +155,26 @@ export default function ChooseCareHome() {
           ) : (
             hospitals.map((hospital) => (
               <View
+                key={hospital.id}
                 className={`${
                   isWeb
-                    ? "w-full mt-8 flex-row h-[340px]"
-                    : "w-[330px] h-[170px] mt-6 mx-4"
-                } rounded-3xl overflow-hidden shadow-xl`}
+                    ? "w-full mt-8 flex-row min-h-[300px]"
+                    : "w-[90%] mt-6 mx-auto min-h-[450px]"
+                } bg-white rounded-3xl overflow-hidden shadow-xl border border-slate-100`}
               >
-                <View className="w-1/3">
+                {/* Image Section */}
+                <View className={`${isWeb ? "w-1/3" : "w-full h-48"}`}>
                   <ImageBackground
                     source={{
                       uri:
-                        hospital.picture ||
-                        "https://www.carehospitals.com/assets/images/main/malpet-new-inner.webp",
+                        hospital.picture || "https://via.placeholder.com/400",
                     }}
                     className="flex-1"
                     resizeMode="cover"
                   />
                 </View>
 
+                {/* Content Section */}
                 <View className="flex-1 px-5 py-4">
                   <View className="flex-row justify-between items-start mb-3">
                     <View className="flex-1">
@@ -163,12 +200,12 @@ export default function ChooseCareHome() {
                       </Text>
                     </View>
                   </View>
-                  <View className="flex-row mr-8">
+
+                  <View className="flex-row flex-wrap mb-4">
                     <InfoCard
                       icon="user-md"
                       label="Doctors"
                       value={hospital.numberOfDoctors}
-                      color="bg-blue-100"
                       bgColor="#d6e0f5"
                       iconColor="#2563eb"
                     />
@@ -183,37 +220,26 @@ export default function ChooseCareHome() {
                       icon="phone"
                       label="Contact"
                       value={hospital.contactNumber}
-                      color="bg-purple-50"
                       bgColor="#e6ccff"
                       iconColor="#8b5cf6"
                     />
                     <InfoCard
                       icon="envelope"
-                      label="email"
-                      value={hospital.email || "@gmail.com"}
-                      color="bg-red-100"
-                      bgColor="#ffcccc"
-                      iconColor="#ff0000"
-                    />
-                    <InfoCard
-                      icon="clock-o"
-                      label="timing"
-                      value="Open 24/7"
-                      color="bg-pink-100"
-                      bgColor="#ccffcc"
-                      iconColor="#10b981"
+                      label="Email"
+                      value={hospital.email}
+                      bgColor="#b3ffe0"
+                      iconColor="#00804d"
                     />
                   </View>
 
                   <View>
-                    <Text className="text-xl font-bold text-slate-900 mb-2">
+                    <Text className="text-lg font-bold text-slate-900 mb-1">
                       About Hospital
                     </Text>
-                    <Text className="text-slate-600 leading-6 pb-8">
+                    <Text className="text-slate-600 leading-5 mb-4">
                       {hospital.name} is a premier healthcare facility located
                       in {hospital.city}. We provide world-class medical
-                      services across multiple departments Ourmission is to
-                      provide compassionate care with modern technology.
+                      services across multiple departments.
                     </Text>
                   </View>
 
@@ -225,30 +251,27 @@ export default function ChooseCareHome() {
                         params: { id: hospital.id, name: hospital.name },
                       })
                     }
-                    className="w-1/3 mt-4 mb-2"
+                    className={`${isWeb ? "w-1/2" : "w-full"} mt-auto`}
                   >
                     <LinearGradient
-                      colors={[
-                        "rgba(177, 235, 252, 0.86)",
-                        "rgba(90, 250, 215, 0.86)",
-                      ]}
+                      colors={["#b1ebfc", "#5afad7"]}
                       start={{ x: 0, y: 0.5 }}
                       end={{ x: 1, y: 0.5 }}
-                      className="py-2 rounded-2xl flex-row justify-center items-center"
+                      className="py-3 rounded-2xl flex-row justify-center items-center"
                     >
                       <FontAwesome6
                         name="user-doctor"
-                        size={20}
+                        size={18}
                         color="#334155"
                       />
-                      <Text className="text-slate-700 text-sm  font-bold ml-3">
-                        Available Departments
+                      <Text className="text-slate-700 font-bold ml-3">
+                        View Departments
                       </Text>
                       <FontAwesome
                         name="arrow-right"
-                        size={15}
+                        size={14}
                         color="#334155"
-                        className={`${isWeb ? "ml-4" : ""}`}
+                        style={{ marginLeft: 10 }}
                       />
                     </LinearGradient>
                   </TouchableOpacity>
@@ -261,29 +284,24 @@ export default function ChooseCareHome() {
     </View>
   );
 }
-const isWeb = Platform.OS === "web";
-const InfoCard = ({ icon, label, value, color, iconColor, bgColor }: any) => (
-  <View
-    style={{ backgroundColor: bgColor }}
-    className={`${
-      isWeb
-        ? "flex-1 py-4 m-4 rounded-2xl items-center border  border-white/50"
-        : "flex-1 py-4 m-4 rounded-2xl items-center border  border-white/50"
-    }`}
-  >
-    <FontAwesome name={icon} size={20} color={iconColor} />
-    <Text className="text-slate-900 font-bold mt-2">{value}</Text>
-    <Text className="text-slate-500 text-[10px] uppercase font-semibold">
-      {label}
-    </Text>
-  </View>
-);
 
-const ContactItem = ({ icon, text }: any) => (
-  <View className="flex-row items-center mb-4">
-    <View className="w-8">
-      <FontAwesome name={icon} size={16} color="#64748b" />
+const InfoCard = ({ icon, label, value, iconColor, bgColor }: any) => {
+  const isWeb = Platform.OS === "web";
+  return (
+    <View
+      style={{ backgroundColor: bgColor }}
+      className={`flex-1 min-w-[80px] py-3 m-1 rounded-2xl items-center border border-white/50`}
+    >
+      <FontAwesome name={icon} size={16} color={iconColor} />
+      <Text
+        className="text-slate-900 font-bold mt-1 text-xs text-center"
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
+      <Text className="text-slate-500 text-[8px] uppercase font-semibold">
+        {label}
+      </Text>
     </View>
-    <Text className="text-slate-700 font-medium">{text}</Text>
-  </View>
-);
+  );
+};
