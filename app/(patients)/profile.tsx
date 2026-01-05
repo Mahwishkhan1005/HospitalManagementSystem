@@ -42,7 +42,7 @@ export default function ProfilePage() {
 
   const PATIENT_ID = 1;
   const DOCTOR_API_URL = "http://192.168.0.133:8080";
-  const BASE_URL = "http://192.168.0.222:8081";
+  const BASE_URL = "http://192.168.0.186:8081";
 
   const userData = {
     name: "shanmukhi",

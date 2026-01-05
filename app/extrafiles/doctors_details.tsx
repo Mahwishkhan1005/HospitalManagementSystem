@@ -30,7 +30,7 @@ export default function HospitalDetails() {
     {}
   );
   const PATIENT_ID = 1;
-  const BASE_URL = "http://192.168.0.222:8081";
+  const BASE_URL = "http://192.168.0.186:8081";
 
   const [formData, setFormData] = useState({
     patientName: "",
@@ -199,7 +199,7 @@ export default function HospitalDetails() {
       > */}
       <ScrollView className="flex-1">
         <LinearGradient
-          colors={["rgba(177, 235, 252, 0.86)", "rgba(90, 250, 222, 0.86)"]}
+          colors={["rgba(177, 235, 252, 0.86)", "rgba(90, 250, 186, 0.86)"]}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           className="p-6"
