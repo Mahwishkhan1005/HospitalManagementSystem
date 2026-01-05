@@ -132,12 +132,8 @@ const checkLoginStatus = async () => {
   };
 
   const handleResetPasswordSubmit = async () => {
-<<<<<<< HEAD
-    const BASE_URL = "http://192.168.0.200:8080";
-
-=======
+    
     const BASE_URL = "http://192.168.0.236:8080";
->>>>>>> mahwish
     try {
       if (!isOtpVerified) {
         const response = await axios.post(`${BASE_URL}/api/auth/verify-otp?otp=${resetData.otp}`, {
