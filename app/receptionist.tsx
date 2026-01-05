@@ -27,12 +27,9 @@ const ReceptionistLanding = () => {
   getRole();
 }, []);
 
-  const features = [
-    "Seamless Care",
-    "Warm and Welcoming Environment",
-    "Comprehensive Care",
-    "Expert Doctors",
-  ];
+// const ReceptionistLanding = () => {
+//   const isWeb = Platform.OS === "web";
+//   const [userRole, setUserRole] = useState<string | null>(null);
 
   const handleLogout = async () => {
     try {

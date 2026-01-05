@@ -17,46 +17,75 @@ import {
   View,
 } from "react-native";
 
+const SAMPLE_DOCTORS = [
+  {
+    id: "67e67fc0-10d8-44ae-8ba3-3b2eb2140963", // Updated to match your example ID
+    name: "Dr. Sarah Johnson",
+    specialization: "Senior Cardiologist",
+    experience: 12,
+    image: "https://img.freepik.com/free-photo/woman-doctor-wearing-lab-coat-with-stethoscope-isolated_1303-29791.jpg",
+  },
+  {
+    id: "2",
+    name: "Dr. Michael Chen",
+    specialization: "Neurologist",
+    experience: 8,
+    image: "https://img.freepik.com/free-photo/doctor-with-stethoscope-hands-pockets_23-2147661164.jpg",
+  },
+];
+
 export default function HospitalDetails() {
-  const { id, name, deptId } = useLocalSearchParams();
+  // Pull IDs from route params
+  const { id, name, hospitalId } = useLocalSearchParams();
   const router = useRouter();
   const isWeb = Platform.OS === "web";
+
   const [doctors, setDoctors] = useState<any[]>([]);
   const [fetchingDoctors, setFetchingDoctors] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<any | null>(null);
-  const [bookingStatus, setBookingStatus] = useState<Record<string, string>>(
-    {}
-  );
+  const [bookingStatus, setBookingStatus] = useState<Record<string, string>>({});
+
   const PATIENT_ID = 1;
-  const BASE_URL = "http://192.168.0.222:8081";
+  const BASE_URL = "http://192.168.0.246:8080";
 
   const [formData, setFormData] = useState({
     patientName: "",
     phoneNumber: "",
     appointmentDate: "",
-    timeSlot: "",
+    timeSlot: "MORNING_10_00",
     address: "",
     issue: "",
+  });
+
+  const getHeaders = (token: string | null) => ({
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "Authorization": `Bearer ${token || ""}`, 
   });
 
   const fetchDoctorsByDepartment = async () => {
     try {
       setFetchingDoctors(true);
-
+      const token = await AsyncStorage.getItem("AccessToken");
       const response = await fetch(
-        `http://192.168.0.133:8080/api/doctors/department/${id}`
+        `${BASE_URL}/api/doctors/department/${id}`,
+        { 
+            method: 'GET',
+            headers: getHeaders(token)
+        }
       );
 
       if (response.ok) {
         const data = await response.json();
-        setDoctors(data);
+        setDoctors(data.length > 0 ? data : SAMPLE_DOCTORS);
       } else {
-        console.error("Failed to fetch doctors for department:", id);
+        setDoctors(SAMPLE_DOCTORS);
       }
     } catch (error) {
       console.error("Error fetching doctors:", error);
+      setDoctors(SAMPLE_DOCTORS);
     } finally {
       setFetchingDoctors(false);
     }
@@ -64,349 +93,222 @@ export default function HospitalDetails() {
 
   const fetchAppointments = async () => {
     try {
+      const token = await AsyncStorage.getItem("AccessToken");
       const response = await fetch(
-        `${BASE_URL}/api/patient/appointments/${PATIENT_ID}`
+        `${BASE_URL}/api/appointments/my`,
+        {
+            method: 'GET',
+            headers: getHeaders(token) // Fixed: now passes token
+        }
       );
       if (response.ok) {
         const appointments = await response.json();
         const statusMap: Record<string, string> = {};
-
         appointments.forEach((app: any) => {
           const dId = app.doctorId || (app.doctor && app.doctor.id);
-
-          if (dId) {
+          if (dId)
             statusMap[String(dId)] = (app.status || "booked").toLowerCase();
-          }
         });
-
-        console.log("Mapped Statuses:", statusMap);
         setBookingStatus(statusMap);
       }
     } catch (e) {
       console.error("Failed to fetch appointments", e);
     }
   };
+
   useEffect(() => {
-    if (id) {
-      fetchDoctorsByDepartment();
-      fetchAppointments();
-    }
+    fetchDoctorsByDepartment();
+    fetchAppointments();
   }, [id]);
 
   const handleBookPress = (doctor: any) => {
-    if (bookingStatus[doctor.id]) return;
     setSelectedDoctor(doctor);
     setModalVisible(true);
   };
+
   const submitBooking = async () => {
     if (!selectedDoctor) return;
     setLoading(true);
 
+    // Format date for the API
     let dateToSend = formData.appointmentDate;
-    if (dateToSend.includes("-") && dateToSend.split("-")[0].length === 4) {
-      const [y, m, d] = dateToSend.split("-");
-      dateToSend = `${d}-${m}-${y}`;
+    if (dateToSend.includes("-") && dateToSend.split("-")[0].length === 2) {
+      const [d, m, y] = dateToSend.split("-");
+      dateToSend = `${y}-${m}-${d}`;
     }
 
+    // UPDATED PAYLOAD FOR THE NEW API
     const payload = {
-      ...formData,
+      patientName: formData.patientName,
+      phoneNumber: formData.phoneNumber,
+      issue: formData.issue,
       appointmentDate: dateToSend,
+      timeSlot: formData.timeSlot,
       doctorId: selectedDoctor.id,
+      departmentId: id, 
+      hospitalId: hospitalId || "df9e8c86-a9af-48e8-a881-1e8d8cce8797", 
     };
-    const patientId = PATIENT_ID;
-    const receptionId = 2;
-    const doctorId = selectedDoctor.id;
+    
+    // UPDATED URL
+    const url = `http://192.168.0.246:8080/api/appointments/book`;
 
-    const url = `${BASE_URL}/api/patient/appointments/${patientId}/${receptionId}/101`;
     try {
+      const token = await AsyncStorage.getItem("AccessToken");
       const response = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
+        headers: getHeaders(token),
         body: JSON.stringify(payload),
       });
 
       if (response.ok) {
-        notifySuccess(
-          "great",
-          "your appointment details submitted successfully"
-        );
-        const newAppointment = {
-          ...formData,
-          doctorId: selectedDoctor.id,
-          status: "booked",
-        };
-
+        const result = await response.json();
         setBookingStatus((prev) => ({
           ...prev,
-          [String(selectedDoctor.id)]: "booked",
+          [String(selectedDoctor.id)]: result.status.toLowerCase(),
         }));
-
-        const existingData = await AsyncStorage.getItem("my_appointments");
-        const appointments = existingData ? JSON.parse(existingData) : [];
-        appointments.push(newAppointment);
-        await AsyncStorage.setItem(
-          "my_appointments",
-          JSON.stringify(appointments)
-        );
-
-        Alert.alert("Success", "Appointment Booked!");
+        Alert.alert("Success", "Appointment Booked Successfully!");
         setModalVisible(false);
-        await fetchAppointments();
-        setFormData({
-          patientName: "",
-          phoneNumber: "",
-          appointmentDate: "",
-          timeSlot: "",
-          address: "",
-          issue: "",
-        });
       } else {
-        window.alert("enter all valid details ");
-        const err = await response.text();
-        console.log("Server Error:", err);
-        Alert.alert("Failed", "Server rejected the booking.");
+        Alert.alert("Error", "Please fill all details correctly.");
       }
     } catch (error) {
-      console.error("Fetch Error:", error);
-      Alert.alert("Connection Error", "Check your backend connection.");
+      Alert.alert("Error", "Failed to connect to the server.");
     } finally {
       setLoading(false);
     }
   };
-  const formatDateForDisplay = (dateString: string) => {
-    if (!dateString) return "";
-    const [year, month, day] = dateString.split("-");
-    return `${day}-${month}-${year}`;
-  };
-  const notifySuccess = (title: string, message: string) => {
-    if (isWeb) {
-      window.alert(`${title}: ${message}`);
-    } else {
-      Alert.alert(title, message);
-    }
-  };
-  return (
-    <View className="flex-1 bg-white overflow-hidden">
-      {/* <ImageBackground
-        source={{
-          uri: "https://static.wixstatic.com/media/f38894_57e85570c334409489b69ac509228b4b~mv2.jpg/v1/fill/w_535,h_306,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/f38894_57e85570c334409489b69ac509228b4b~mv2.jpg",
-        }}
-        className={`${isWeb ? "flex-1 " : "flex-1"}`}
-        resizeMode="cover"
-      > */}
-      <ScrollView className="flex-1">
-        <LinearGradient
-          colors={["rgba(177, 235, 252, 0.86)", "rgba(90, 250, 222, 0.86)"]}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          className="p-6"
-        >
-          <View
-            className={`${
-              isWeb ? "flex-row items-center" : "flex-row items-center pt-5"
-            }`}
-          >
-            <TouchableOpacity onPress={() => router.back()} className="mr-4">
-              <FontAwesome name="chevron-left" size={20} color="#000" />
-            </TouchableOpacity>
-            <Text className="text-2xl font-bold text-black">{name}</Text>
-          </View>
-        </LinearGradient>
 
-        <Text className="text-lg font-semibold text-slate-600 m-4">
-          Our Specialists
-        </Text>
+  return (
+    <View className="flex-1 bg-slate-50">
+      <LinearGradient
+        colors={["#b1ebfc", "#5afad7"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        className={`${isWeb ? "py-6 px-10" : "pt-12 pb-6 px-6"} rounded-b-[40px] shadow-sm`}
+      >
+        <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
+          <View className="bg-white/40 p-2 rounded-full">
+            <FontAwesome name="chevron-left" size={16} color="#334155" />
+          </View>
+          <View className="ml-4">
+            <Text className="text-slate-800 text-xs uppercase font-bold opacity-60">Specialist in</Text>
+            <Text className="text-2xl font-black text-slate-900">{name}</Text>
+          </View>
+        </TouchableOpacity>
+      </LinearGradient>
+
+      <ScrollView className="flex-1 px-4 pt-4">
+        <Text className="text-lg font-bold text-slate-800 mb-4 px-2">Recommended Doctors</Text>
 
         {fetchingDoctors ? (
-          <View className="py-20 items-center justify-center">
+          <View className="py-20 items-center">
             <ActivityIndicator size="large" color="#2eb8b8" />
-            <Text className="mt-4 text-slate-500 font-medium">
-              Finding the best specialists...
-            </Text>
+            <Text className="mt-4 text-slate-500 font-medium">Finding Specialists...</Text>
           </View>
         ) : doctors.length > 0 ? (
           doctors.map((doctor) => {
             const status = bookingStatus[String(doctor.id)] || "idle";
             return (
-              <View
-                key={doctor.id}
-                className={`${
-                  isWeb
-                    ? "flex-row items-center w-2/3 bg-slate-50 p-4 rounded-2xl mb-4 border border-slate-100 mx-8"
-                    : "flex-row items-center bg-slate-50 p-4 rounded-2xl mb-4 border border-slate-100 mx-4"
-                }`}
-              >
-                <Image
-                  source={{ uri: doctor.image }}
-                  className="w-16 h-16 rounded-full bg-gray-200 mr-4"
-                />
-                <View className="flex-1">
-                  <Text className="text-lg font-bold text-slate-800">
-                    {doctor.name}
-                  </Text>
-                  <Text className="text-[#2eb8b8] my-1">
-                    {doctor.specialization}
-                  </Text>
-                  <Text className="text-slate-500">
-                    {doctor.experience} years experience
-                  </Text>
+              <View key={doctor.id} className="bg-white p-4 rounded-3xl mb-4 flex-row items-center shadow-sm border border-slate-100">
+                <Image source={{ uri: doctor.image }} className="w-20 h-20 rounded-2xl bg-slate-100" />
+                <View className="flex-1 ml-4">
+                  <Text className="text-lg font-bold text-slate-800">{doctor.name}</Text>
+                  <Text className="text-[#2eb8b8] font-medium text-sm">{doctor.specialization}</Text>
+                  <View className="flex-row items-center mt-1">
+                    <FontAwesome name="star" size={12} color="#f59e0b" />
+                    <Text className="text-slate-400 text-xs ml-1">{doctor.experience} Years Exp.</Text>
+                  </View>
                 </View>
                 <TouchableOpacity
                   onPress={() => handleBookPress(doctor)}
                   disabled={status !== "idle"}
-                  className={`px-4 py-2 rounded-lg ${
-                    status === "pending"
-                      ? "bg-orange-400"
-                      : status === "booked"
-                      ? "bg-blue-400"
-                      : "bg-[#2eb8b8]"
-                  }`}
+                  className={`px-6 py-2 rounded-xl ${status === "idle" ? "bg-[#2eb8b8]" : "bg-slate-200"}`}
                 >
-                  <Text className="text-white font-bold capitalize">
-                    {status === "idle" ? "Book" : status}
+                  <Text className={`font-bold ${status === "idle" ? "text-white" : "text-slate-500"}`}>
+                    {status === "idle" ? "Book" : "Booked"}
                   </Text>
                 </TouchableOpacity>
               </View>
             );
           })
         ) : (
-          <View className="items-center justify-center py-20 px-10">
-            <View className="bg-slate-100 p-8 rounded-full mb-6">
-              <FontAwesome name="user-md" size={60} color="#cbd5e1" />
-            </View>
-            <Text className="text-xl font-bold text-slate-800 text-center mb-2">
-              No Doctors Available
-            </Text>
-            <Text className="text-slate-500 text-center leading-relaxed mb-8">
-              We couldn't find any specialists for this department at the
-              moment. Please check back later or try another department.
-            </Text>
-            <TouchableOpacity
-              onPress={() => router.back()}
-              className="bg-[#2eb8b8] px-10 py-3 rounded-2xl shadow-sm"
-            >
-              <Text className="text-white font-bold">Go Back</Text>
-            </TouchableOpacity>
+          <View className="items-center py-20">
+            <FontAwesome name="user-md" size={80} color="#cbd5e1" />
+            <Text className="text-xl font-bold text-slate-400 mt-4">No Specialists Found</Text>
           </View>
         )}
       </ScrollView>
 
       <Modal animationType="slide" transparent={true} visible={modalVisible}>
         <View className="flex-1 justify-end bg-black/50">
-          <View
-            className={`bg-white rounded-t-3xl p-6 ${
-              isWeb ? "w-1/2 mx-auto mb-10 rounded-3xl" : "w-full"
-            }`}
-          >
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-xl font-bold">Booking Details</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <FontAwesome name="close" size={24} color="gray" />
+          <View className={`bg-white rounded-t-[40px] p-8 ${isWeb ? "w-1/3 mx-auto mb-10 rounded-[40px]" : "w-full"}`}>
+            <View className="flex-row justify-between items-center mb-6">
+              <Text className="text-2xl font-black text-slate-800">Book Appointment</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)} className="bg-slate-100 p-2 rounded-full">
+                <FontAwesome name="close" size={20} color="gray" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              className="max-h-[500px]"
-            >
+            <ScrollView showsVerticalScrollIndicator={false} className="max-h-[500px]">
               <InputField
                 label="Patient Name"
                 value={formData.patientName}
-                required={true}
-                onChange={(val: string) =>
-                  setFormData({ ...formData, patientName: val })
-                }
-                placeholder="Name"
+                required
+                onChange={(val: string) => setFormData({ ...formData, patientName: val })}
+                placeholder="Enter patient name"
               />
               <InputField
                 label="Phone Number"
                 value={formData.phoneNumber}
-                required={true}
-                onChange={(val: string) =>
-                  setFormData({ ...formData, phoneNumber: val })
-                }
-                placeholder="Phone"
+                required
                 keyboardType="phone-pad"
+                onChange={(val: string) => setFormData({ ...formData, phoneNumber: val })}
+                placeholder="Contact number"
               />
 
-              <Text className="text-slate-600 font-bold mb-2">
-                Appointment Date
-              </Text>
+              <Text className="text-slate-700 font-bold mb-2">Appointment Date</Text>
               {isWeb ? (
                 <input
                   type="date"
-                  className="border border-slate-200 p-2 rounded-lg mb-4"
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      appointmentDate: e.target.value,
-                    })
-                  }
+                  style={{ border: "1px solid #e2e8f0", padding: "12px", borderRadius: "12px", marginBottom: "16px", width: "100%" }}
+                  onChange={(e) => setFormData({ ...formData, appointmentDate: e.target.value })}
                 />
               ) : (
                 <TextInput
-                  className="border border-slate-200 p-3 rounded-xl mb-4"
-                  placeholder="DD-MM-YYYY"
+                  className="border border-slate-200 p-3 rounded-xl mb-4 bg-slate-50"
+                  placeholder="YYYY-MM-DD"
                   value={formData.appointmentDate}
-                  onChangeText={(val) =>
-                    setFormData({ ...formData, appointmentDate: val })
-                  }
+                  onChangeText={(val) => setFormData({ ...formData, appointmentDate: val })}
                 />
               )}
 
-              <Text className="text-slate-600 font-bold mb-2">Slot</Text>
-              <View className="border border-slate-200 rounded-xl mb-4 bg-slate-50">
+              <Text className="text-slate-700 font-bold mb-2">Preferred Slot</Text>
+              <View className="border border-slate-200 rounded-xl mb-4 bg-slate-50 overflow-hidden">
                 <Picker
                   selectedValue={formData.timeSlot}
-                  onValueChange={(val) =>
-                    setFormData({ ...formData, timeSlot: val })
-                  }
+                  onValueChange={(val) => setFormData({ ...formData, timeSlot: val })}
                 >
-                  <Picker.Item label="Morning 10:00" value="MORNING_10_00" />
-                  <Picker.Item label="Morning 11:00" value="MORNING_11_00" />
-                  <Picker.Item label="Morning 12:00" value="MORNING_12_00" />
-                  <Picker.Item label="Evening 03:00" value="EVENING_03_00" />
-                  <Picker.Item label="Evening 04:00" value="EVENING_04_00" />
-                  <Picker.Item label="Evening 05:00" value="EVENING_05_00" />
-                  <Picker.Item label="Evening 06:00" value="EVENING_06_00" />
-                  <Picker.Item label="Evening 07:00" value="EVENING_07_00" />
+                  <Picker.Item label="Morning 10:00 AM" value="MORNING_10_00" />
+                  <Picker.Item label="Morning 11:00 AM" value="MORNING_11_00" />
+                  <Picker.Item label="Evening 04:00 PM" value="EVENING_04_00" />
+                  <Picker.Item label="Evening 06:00 PM" value="EVENING_06_00" />
                 </Picker>
               </View>
 
               <InputField
-                label="Address"
-                value={formData.address}
-                required={true}
-                onChange={(val: string) =>
-                  setFormData({ ...formData, address: val })
-                }
-                placeholder="Address"
-              />
-              <InputField
-                label="Issue"
+                label="Reason / Issue"
                 value={formData.issue}
-                required={true}
-                onChange={(val: string) =>
-                  setFormData({ ...formData, issue: val })
-                }
-                placeholder="Issue"
+                required
+                onChange={(val: string) => setFormData({ ...formData, issue: val })}
+                placeholder="Describe your symptoms"
               />
 
               <TouchableOpacity
                 onPress={submitBooking}
                 disabled={loading}
-                className="bg-[#2eb8b8] p-4 rounded-2xl items-center mt-4 mb-8"
+                className="bg-[#2eb8b8] p-5 rounded-2xl items-center mt-4 shadow-md"
               >
-                {loading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text className="text-white font-bold text-lg">
-                    Confirm Booking
-                  </Text>
-                )}
+                {loading ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-lg">Confirm Appointment</Text>}
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -416,22 +318,16 @@ export default function HospitalDetails() {
   );
 }
 
-const InputField = ({
-  label,
-  value,
-  onChange,
-  placeholder,
-  required,
-  keyboardType = "default",
-}: any) => (
+const InputField = ({ label, value, onChange, placeholder, required, keyboardType = "default" }: any) => (
   <View className="mb-4">
-    <View className="flex-row">
-      <Text className="text-slate-600 font-bold">{label}</Text>
-      {required && <Text className="text-red-500 ml-1 font-bold">*</Text>}
+    <View className="flex-row mb-1">
+      <Text className="text-slate-700 font-bold">{label}</Text>
+      {required && <Text className="text-red-500 ml-1">*</Text>}
     </View>
     <TextInput
-      className="border border-slate-200 p-3 rounded-xl bg-slate-50"
+      className="border border-slate-200 p-3 rounded-xl bg-slate-50 text-slate-800"
       placeholder={placeholder}
+      placeholderTextColor="#94a3b8"
       value={value}
       keyboardType={keyboardType}
       onChangeText={onChange}

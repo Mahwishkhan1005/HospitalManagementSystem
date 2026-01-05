@@ -39,6 +39,7 @@ export default function ProfilePage() {
   const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
 
   const PATIENT_ID = 1;
+  
   const BASE_URL = "http://192.168.0.246:8080";
 
   const userData = {
