@@ -132,7 +132,10 @@ const checkLoginStatus = async () => {
   };
 
   const handleResetPasswordSubmit = async () => {
+<<<<<<< HEAD
     
+=======
+>>>>>>> monu
     const BASE_URL = "http://192.168.0.236:8080";
     try {
       if (!isOtpVerified) {
