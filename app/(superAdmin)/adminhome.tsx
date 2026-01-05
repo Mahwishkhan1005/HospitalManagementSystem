@@ -27,7 +27,7 @@ const API_BASE_URL = 'http://192.168.0.246:8080/api';
 const HOSPITAL_API = `${API_BASE_URL}/hospitals`;
 const DEPARTMENT_API = `${API_BASE_URL}/departments`;
 const DOCTOR_API = `${API_BASE_URL}/doctors`;
-const SIGNUP_API = 'http://192.168.0.231:8080/admin/signup';
+const SIGNUP_API = 'http://192.168.0.246:8080/api/auth/create-receptionist';
 
 /* -------------------- HOSPITAL CARD -------------------- */
 
@@ -236,8 +236,12 @@ const SignupComponent = ({ visible, onClose }) => {
         password,
         role,
       };
-
-      const res = await axios.post(SIGNUP_API, payload);
+const token = await AsyncStorage.getItem("AccessToken"); // Admin's Token
+      const res = await axios.post(SIGNUP_API, payload, {
+      headers: {
+        'Authorization': `Bearer ${token}` // Attach JWT
+      }
+    });
 
       setSuccessMessage(
         res.data?.message || `${role} registered successfully`
@@ -346,7 +350,7 @@ const SignupComponent = ({ visible, onClose }) => {
 
                 {showRoleDropdown && (
                   <View className="mt-2 border rounded-xl overflow-hidden bg-white">
-                    {['receiptionist', 'doctor'].map(item => (
+                    {['receiptionist'].map(item => (
                       <TouchableOpacity
                         key={item}
                         onPress={() => {
@@ -548,7 +552,13 @@ export default function App() {
   const fetchHospitals = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${HOSPITAL_API}/all`);
+      const token = await AsyncStorage.getItem("AccessToken");
+
+      const response = await fetch(`${HOSPITAL_API}/all`, {
+      headers: {
+        'Authorization': `Bearer ${token}` // 2. Add Header
+      }
+    });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -596,7 +606,15 @@ export default function App() {
     
     try {
       setLoadingDepartments(true);
-      const response = await fetch(`${DEPARTMENT_API}/hospital/${hospitalId}`);
+      const token = await AsyncStorage.getItem("AccessToken");
+      const response = await fetch(`${DEPARTMENT_API}/hospital/${hospitalId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`, // Key addition for JWT
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -620,7 +638,15 @@ export default function App() {
     
     try {
       setLoadingDoctors(true);
-      const response = await fetch(`${DOCTOR_API}/department/${departmentId}`);
+      const token = await AsyncStorage.getItem("AccessToken");
+      const response = await fetch(`${DOCTOR_API}/department/${departmentId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`, // Pass the JWT here
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -747,7 +773,7 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem('AccessToken');
+      await AsyncStorage.multiRemove(['AccessToken', 'userRole']);
       router.replace('/');
     } catch (e) {
       console.log('Logout failed', e);
@@ -889,8 +915,13 @@ export default function App() {
           type,
         });
       }
-
-      const res = await axios.post(`${HOSPITAL_API}/add`, formData);
+const token = await AsyncStorage.getItem("AccessToken"); // Get Token
+      const res = await axios.post(`${HOSPITAL_API}/add`, formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`, // Add Header
+        'Content-Type': 'multipart/form-data'
+      }
+    });
       
       // Extract the response properly
       const savedHospital = res.data || {};
@@ -1092,36 +1123,93 @@ export default function App() {
   };
 
   // Department Functions
-  const handleAddDepartment = async () => {
-    if (!newDepartment.name.trim() || !newDepartment.description.trim()) {
-      Alert.alert('Error', 'Please fill required fields (Name and Description)');
-      return;
-    }
+  // const handleAddDepartment = async () => {
+  //   if (!newDepartment.name.trim() || !newDepartment.description.trim()) {
+  //     Alert.alert('Error', 'Please fill required fields (Name and Description)');
+  //     return;
+  //   }
 
-    if (!selectedHospital?.id) {
-      Alert.alert('Error', 'No hospital selected');
-      return;
-    }
+  //   if (!selectedHospital?.id) {
+  //     Alert.alert('Error', 'No hospital selected');
+  //     return;
+  //   }
 
-    try {
-      const departmentData = {
-        name: newDepartment.name,
-        description: newDepartment.description,
-        hospitalId: selectedHospital.id
-      };
-
-      const response = await axios.post(`${DEPARTMENT_API}/add`, departmentData);
+  //   try {
+  //     const departmentData = {
+  //       name: newDepartment.name,
+  //       description: newDepartment.description,
+  //       hospitalId: selectedHospital.id
+  //     };
+  //     const token = await AsyncStorage.getItem("AccessToken"); // Get Token
+  //     const response = await axios.post(`${DEPARTMENT_API}/add`, departmentData, , {
+  //     headers: {
+  //       'Authorization': `Bearer ${token}`, // Add Header
+  //       'Content-Type': 'multipart/form-data'
+  //     }
+  //   });
       
-      Alert.alert('Success', 'Department added successfully!');
-      setNewDepartment({ name: '', description: '' });
-      setAddDepartmentModalVisible(false);
-      // Refresh departments list
-      fetchDepartments(selectedHospital.id);
-    } catch (error) {
-      console.error('Add department failed:', error?.response?.data || error.message);
+  //     Alert.alert('Success', 'Department added successfully!');
+  //     setNewDepartment({ name: '', description: '' });
+  //     setAddDepartmentModalVisible(false);
+  //     // Refresh departments list
+  //     fetchDepartments(selectedHospital.id);
+  //   } catch (error) {
+  //     console.error('Add department failed:', error?.response?.data || error.message);
+  //     Alert.alert('Error', error?.response?.data?.message || 'Failed to add department');
+  //   }
+  // };
+
+  const handleAddDepartment = async () => {
+  // 1. Basic Validation
+  if (!newDepartment.name.trim() || !newDepartment.description.trim()) {
+    Alert.alert('Error', 'Please fill required fields (Name and Description)');
+    return;
+  }
+
+  if (!selectedHospital?.id) {
+    Alert.alert('Error', 'No hospital selected');
+    return;
+  }
+
+  try {
+    // 2. Retrieve the Token
+    const token = await AsyncStorage.getItem("AccessToken");
+
+    const departmentData = {
+      name: newDepartment.name,
+      description: newDepartment.description,
+      hospitalId: selectedHospital.id
+    };
+
+    // 3. Make the Authorized API Call
+    // Axios post structure: axios.post(url, data, config)
+    const response = await axios.post(`${DEPARTMENT_API}/add`, departmentData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json' // Changed from multipart to application/json
+      }
+    });
+
+    // 4. Success Handling
+    Alert.alert('Success', 'Department added successfully!');
+    setNewDepartment({ name: '', description: '' });
+    setAddDepartmentModalVisible(false);
+    
+    // Refresh the list
+    fetchDepartments(selectedHospital.id);
+
+  } catch (error) {
+    console.error('Add department failed:', error?.response?.data || error.message);
+    
+    // 5. Handle Session Expiry
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      Alert.alert("Session Expired", "Please login again.");
+      handleLogout(); // Assuming you have your handleLogout function defined
+    } else {
       Alert.alert('Error', error?.response?.data?.message || 'Failed to add department');
     }
-  };
+  }
+};
 
   const handleUpdateDepartment = async () => {
     if (!editDepartment.id) return;
@@ -1167,117 +1255,134 @@ export default function App() {
   };
 
   // Doctor Functions
-  const handleAddDoctor = async () => {
-    if (!newDoctor.name.trim() || !newDoctor.phone.trim() || !newDoctor.specialization.trim() || !newDoctor.departmentId) {
-      Alert.alert('Error', 'Please fill required fields (Name, Phone, Specialization, and select Department)');
-      return;
+ const handleAddDoctor = async () => {
+  if (!newDoctor.name.trim() || !newDoctor.phone.trim() || !newDoctor.specialization.trim() || !newDoctor.departmentId) {
+    Alert.alert('Error', 'Please fill required fields (Name, Phone, Specialization, and select Department)');
+    return;
+  }
+
+  try {
+    setUploadingDoctorImage(true);
+
+    // 1. Retrieve the JWT token from storage
+    const token = await AsyncStorage.getItem("AccessToken");
+
+    const doctorData = {
+      name: newDoctor.name,
+      phone: newDoctor.phone,
+      mail: newDoctor.mail || '',
+      specialization: newDoctor.specialization,
+      experience: parseInt(newDoctor.experience) || 0,
+      fee: parseFloat(newDoctor.fee) || 0,
+      education: newDoctor.education || '',
+      departmentId: newDoctor.departmentId,
+      cabinNumber: newDoctor.cabinNumber || null,
+    };
+
+    const formData = new FormData();
+    formData.append(
+      'doctor',
+      new Blob([JSON.stringify(doctorData)], {
+        type: 'application/json',
+      })
+    );
+
+    // ✅ IMAGE PART (OPTIONAL)
+    if (newDoctor.localImage) {
+      const uri = newDoctor.localImage;
+      const filename = uri.split('/').pop() || `doctor_${Date.now()}.jpg`;
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+      formData.append('picture', {
+        uri,
+        name: filename,
+        type,
+      });
     }
 
-    try {
-      setUploadingDoctorImage(true);
-
-      const doctorData = {
-        name: newDoctor.name,
-        phone: newDoctor.phone,
-        mail: newDoctor.mail || '',
-        specialization: newDoctor.specialization,
-        experience: parseInt(newDoctor.experience) || 0,
-        fee: parseFloat(newDoctor.fee) || 0,
-        education: newDoctor.education || '',
-        departmentId: newDoctor.departmentId,
-        cabinNumber: newDoctor.cabinNumber || null,
-      };
-
-      const formData = new FormData();
-      formData.append(
-        'doctor',
-        new Blob([JSON.stringify(doctorData)], {
-          type: 'application/json',
-        })
-      );
-
-      // ✅ IMAGE PART (OPTIONAL)
-      if (newDoctor.localImage) {
-        const uri = newDoctor.localImage;
-        const filename = uri.split('/').pop() || `doctor_${Date.now()}.jpg`;
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : 'image/jpeg';
-
-        formData.append('picture', {
-          uri,
-          name: filename,
-          type,
-        });
+    // 2. Add the Authorization header to the axios request
+    const res = await axios.post(`${DOCTOR_API}/add`, formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`, // Pass the JWT here
+        'Content-Type': 'multipart/form-data',
       }
+    });
 
-      const res = await axios.post(`${DOCTOR_API}/add`, formData);
-      const savedDoctor = res.data || {};
-      console.log('Doctor add response:', savedDoctor);
-      
-      // Get picture URL from response
-      const pictureUrl = savedDoctor.picture || 
-                        savedDoctor.image || 
-                        (savedDoctor.doctor && savedDoctor.doctor.picture) ||
-                        newDoctor.localImage ||
-                        null;
+    const savedDoctor = res.data || {};
+    console.log('Doctor add response:', savedDoctor);
 
-      const doctorWithPicture = {
-        ...savedDoctor,
-        picture: pictureUrl,
-      };
+    // Get picture URL from response
+    const pictureUrl = savedDoctor.picture || 
+                      savedDoctor.image || 
+                      (savedDoctor.doctor && savedDoctor.doctor.picture) ||
+                      newDoctor.localImage ||
+                      null;
 
-      // Persist doctor picture locally
-      if (doctorWithPicture.id && doctorWithPicture.picture) {
-        try {
-          await AsyncStorage.setItem(`doctor:${doctorWithPicture.id}:picture`, doctorWithPicture.picture);
-        } catch (e) {
-          console.log('Error saving doctor picture to storage', e);
-        }
-      }
-      
-      // Clean up unsaved image
+    const doctorWithPicture = {
+      ...savedDoctor,
+      picture: pictureUrl,
+    };
+
+    // Persist doctor picture locally
+    if (doctorWithPicture.id && doctorWithPicture.picture) {
       try {
-        await AsyncStorage.removeItem('unsaved:newDoctor:picture');
+        await AsyncStorage.setItem(`doctor:${doctorWithPicture.id}:picture`, doctorWithPicture.picture);
       } catch (e) {
-        console.log('Failed removing unsaved doctor image', e);
+        console.log('Error saving doctor picture to storage', e);
       }
+    }
 
-      Alert.alert('Success', 'Doctor added successfully!');
-      
-      // Reset form
-      setNewDoctor({
-        name: '',
-        phone: '',
-        mail: '',
-        specialization: '',
-        experience: '',
-        fee: '',
-        education: '',
-        departmentId: '',
-        cabinNumber: '',
-        picture: null,
-        localImage: null,
-      });
-      
-      setAddDoctorModalVisible(false);
-      
-      // Refresh doctors list if we're viewing a specific department
-      if (viewDoctorsDepartmentId) {
-        fetchDoctorsByDepartment(viewDoctorsDepartmentId);
-      } else if (selectedHospital?.id) {
-        fetchAllDoctorsForHospital();
-      }
+    // Clean up unsaved image
+    try {
+      await AsyncStorage.removeItem('unsaved:newDoctor:picture');
+    } catch (e) {
+      console.log('Failed removing unsaved doctor image', e);
+    }
 
-    } catch (error) {
-      console.error('Add doctor failed:', error?.response?.data || error.message);
+    Alert.alert('Success', 'Doctor added successfully!');
+
+    // Reset form
+    setNewDoctor({
+      name: '',
+      phone: '',
+      mail: '',
+      specialization: '',
+      experience: '',
+      fee: '',
+      education: '',
+      departmentId: '',
+      cabinNumber: '',
+      picture: null,
+      localImage: null,
+    });
+
+    setAddDoctorModalVisible(false);
+
+    // Refresh doctors list (Refresh logic also needs JWT in those functions)
+    if (viewDoctorsDepartmentId) {
+      fetchDoctorsByDepartment(viewDoctorsDepartmentId);
+    } else if (selectedHospital?.id) {
+      fetchAllDoctorsForHospital();
+    }
+
+  } catch (error) {
+    console.error('Add doctor failed:', error?.response?.data || error.message);
+    
+    // 3. Handle Session Expiry (Unauthorized)
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      Alert.alert("Session Expired", "Please login again.");
+      handleLogout(); // Assuming your logout function is defined
+    } else {
       Alert.alert(
         'Error',
         error?.response?.data?.message || 'Failed to add doctor'
       );
-    } finally {
-      setUploadingDoctorImage(false);
     }
-  };
+  } finally {
+    setUploadingDoctorImage(false);
+  }
+};
 
   const handleUpdateDoctor = async () => {
     if (!editDoctor.id) return;
