@@ -2,8 +2,7 @@ import { FontAwesome, Ionicons, MaterialCommunityIcons } from "@expo/vector-icon
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { jwtDecode } from "jwt-decode";
-import React, { useEffect, useState } from "react";
+import { default as React, useEffect, useState } from "react";
 import {
   Image,
   Platform,
@@ -14,29 +13,19 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-interface DecodedToken {
-  role: string;
-  [key: string]: any;
-}
-
 const ReceptionistLanding = () => {
   const isWeb = Platform.OS === "web";
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchRole = async () => {
-      try {
-        const token = await AsyncStorage.getItem("AccessToken");
-        if (token) {
-          const decoded = jwtDecode<DecodedToken>(token);
-          setUserRole(decoded.role);
-        }
-      } catch (error) {
-        console.error("Error fetching user role:", error);
-      }
-    };
-    fetchRole();
-  }, []);
+ useEffect(() => {
+  const getRole = async () => {
+    // FIX: Match the key name used in the Index page ("userRole")
+    const storedRole = await AsyncStorage.getItem("userRole"); 
+    console.log("Detected Role:", storedRole); // Add this to debug in your console
+    setRole(storedRole);
+  };
+  getRole();
+}, []);
 
   const features = [
     "Seamless Care",
@@ -47,7 +36,7 @@ const ReceptionistLanding = () => {
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem("AccessToken");
+      await AsyncStorage.multiRemove(["AccessToken", "UserRole"]);
       router.replace("/");
     } catch (e) {
       console.error("Logout failed", e);
@@ -83,7 +72,7 @@ const ReceptionistLanding = () => {
             <View className={`${isWeb ? "w-1/2" : "w-full mb-10"}`}>
               <View className="bg-teal-100 self-start px-3 py-1 rounded-md mb-4">
                 <Text className="text-teal-700 font-bold uppercase tracking-widest text-[10px]">
-                    {userRole === 'DOCTOR' ? 'Doctor Dashboard' : 'Receptionist Dashboard'}
+                   Healthcare Management System
                 </Text>
               </View>
 
@@ -92,68 +81,67 @@ const ReceptionistLanding = () => {
               </Text>
 
               <View className="gap-y-4">
-                {/* ROLE BASED BUTTONS */}
-                {(userRole === "RECEIPTIOINIST" || userRole === "RECEPTIONIST") && (
-                  <View className="flex-row flex-wrap gap-4">
-                    <TouchableOpacity
-                      onPress={() => router.push("/(receptionist)/receptionisthome")}
-                      className="flex-row items-center bg-teal-600 px-6 py-4 rounded-2xl shadow-lg"
-                    >
-                      <Ionicons name="calendar" size={20} color="#fff" />
-                      <Text className="ml-3 text-white font-bold">Manage Appointments</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={() => router.push("/(receptionist)/receptionDoctor")}
-                      className="flex-row items-center bg-white border-2 border-teal-600 px-6 py-4 rounded-2xl"
-                    >
-                      <FontAwesome name="user-md" size={20} color="#0d9488" />
-                      <Text className="ml-3 text-teal-600 font-bold">Doctor Directory</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {userRole === "DOCTOR" && (
+                {/* ALL BUTTONS SHOWN REGARDLESS OF ROLE */}
+                <View className="flex-row flex-wrap gap-4">
+                  {role === "RECEPTIONIST" && (
+                    <>
                   <TouchableOpacity
-                    onPress={() => router.push("/(hospital)/hospitalhome")}
+                    onPress={() => router.push("/(receptionist)/receptionisthome")}
                     className="flex-row items-center bg-teal-600 px-6 py-4 rounded-2xl shadow-lg"
                   >
-                    <MaterialCommunityIcons name="stethoscope" size={22} color="white" />
-                    <View className="ml-4">
-                        <Text className="text-white font-bold">Doctor's Portal</Text>
-                        <Text className="text-teal-100 text-xs italic">View your appointments here →</Text>
-                    </View>
+                    <Ionicons name="calendar" size={20} color="#fff" />
+                    <Text className="ml-3 text-white font-bold">Manage Appointments</Text>
                   </TouchableOpacity>
-                )}
+
+                  <TouchableOpacity
+                    onPress={() => router.push("/(receptionist)/receptionDoctor")}
+                    className="flex-row items-center bg-white border-2 border-teal-600 px-6 py-4 rounded-2xl shadow-sm"
+                  >
+                    <FontAwesome name="user-md" size={20} color="#0d9488" />
+                    <Text className="ml-3 text-teal-600 font-bold">Doctor Directory</Text>
+                  </TouchableOpacity>
+                  </>
+                  )}
+
+                  {/* DOCTOR ONLY BUTTONS */}
+                  {role === "DOCTOR" && (
+                  <TouchableOpacity
+                    onPress={() => router.push("/(hospital)/hospitalhome")}
+                    className="flex-row items-center bg-teal-800 px-6 py-4 rounded-2xl shadow-lg"
+                  >
+                    <MaterialCommunityIcons name="stethoscope" size={20} color="white" />
+                    <Text className="ml-3 text-white font-bold">Doctor's Portal</Text>
+                  </TouchableOpacity>
+                  )}
+                </View>
 
                 {/* --- IMAGE CARD BELOW BUTTONS --- */}
                 <View
-  className={`mt-8 bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100
-  ${isWeb ? "max-w-30 min-h-[520px]" : "max-w-md"}`}
->
+                  className={`mt-8 bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100
+                  ${isWeb ? "max-w-30 min-h-[520px]" : "max-w-md"}`}
+                >
+                  <Image
+                    source={require("../assets/images/hospital2.png")}
+                    resizeMode="cover"
+                    style={{
+                      width: "100%",
+                      height: Platform.OS === "web" ? 380 : 200,
+                      borderTopLeftRadius: 24,
+                      borderTopRightRadius: 24,
+                    }}
+                  />
 
-                   <Image
-  source={require("../assets/images/hospital2.png")}
-  resizeMode="cover"
-  style={{
-    width: "100%",
-    height: Platform.OS === "web" ? 380 :200,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  }}
-/>
-
-                   <View className="p-5">
-                      <View className="flex-row justify-between items-center mb-2">
-                        <Text className="text-lg font-bold text-slate-800">Main Medical Wing</Text>
-                        <View className="bg-emerald-100 px-2 py-1 rounded">
-                           <Text className="text-[10px] font-bold text-emerald-700 uppercase">Modern Facility</Text>
-                        </View>
+                  <View className="p-5">
+                    <View className="flex-row justify-between items-center mb-2">
+                      <Text className="text-lg font-bold text-slate-800">Main Medical Wing</Text>
+                      <View className="bg-emerald-100 px-2 py-1 rounded">
+                          <Text className="text-[10px] font-bold text-emerald-700 uppercase">Modern Facility</Text>
                       </View>
-                      <Text className="text-gray-500 text-xs leading-5">
-                        Experience world-class healthcare with our state-of-the-art diagnostic equipment and 24/7 emergency support.
-                      </Text>
-                   </View>
+                    </View>
+                    <Text className="text-gray-500 text-xs leading-5">
+                      Experience world-class healthcare with our state-of-the-art diagnostic equipment and 24/7 emergency support.
+                    </Text>
+                  </View>
                 </View>
               </View>
             </View>

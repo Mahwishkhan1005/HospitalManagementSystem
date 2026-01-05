@@ -1,14 +1,13 @@
-import React, { Component } from "react";
-import { Text, View } from "react-native";
+// import { Component } from "react";
 
-export class _layout extends Component {
-  render() {
-    return (
-      <View>
-        <Text> textInComponent </Text>
-      </View>
-    );
-  }
-}
+// export class _layout extends Component {
+//   // render() {
+//   //   return (
+//   //     <View>
+//   //       <Text> textInComponent </Text>
+//   //     </View>
+//   //   );
+//   // }
+// }
 
-export default _layout;
+// export default _layout;

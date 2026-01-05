@@ -5,7 +5,7 @@ export class adminhome extends Component {
   render() {
     return (
       <View>
-        <Text> textInComponent </Text>
+        <Text> textInComponent hii admin home</Text>
       </View>
     );
   }
