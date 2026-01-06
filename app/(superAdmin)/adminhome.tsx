@@ -996,103 +996,97 @@ const token = await AsyncStorage.getItem("AccessToken"); // Get Token
   };
 
   // Update hospital with proper image persistence
-  const handleEditHospital = async () => {
-    if (!editHospital.id) return;
+ const handleEditHospital = async () => {
+  if (!editHospital.id) return;
 
-    try {
-      setUploadingImage(true);
+  try {
+    setUploadingImage(true);
 
-      const hospitalInfoPayload = {
-        name: editHospital.name,
-        address: editHospital.address,
-        city: editHospital.city,
-        numberOfDoctors: parseInt(editHospital.numberOfDoctors) || 0,
-        numberOfBeds: parseInt(editHospital.numberOfBeds) || 0,
-        ageOfHospital: parseInt(editHospital.ageOfHospital) || 0,
-        rating: parseFloat(editHospital.rating) || 0,
-        about: editHospital.about || '',
-        contactNumber: editHospital.contactNumber || '',
-      };
+    // 1. Retrieve the token from storage
+    const token = await AsyncStorage.getItem('AccessToken');
 
-      const formData = new FormData();
-      formData.append(
-        'hospital',
-        new Blob([JSON.stringify(hospitalInfoPayload)], {
-          type: 'application/json',
-        })
-      );
+    const hospitalInfoPayload = {
+      // Use optional chaining to prevent the "null reading toString" error
+      name: editHospital?.name || '',
+      address: editHospital?.address || '',
+      city: editHospital?.city || '',
+      numberOfDoctors: editHospital?.numberOfDoctors ? parseInt(editHospital.numberOfDoctors) : 0,
+      numberOfBeds: editHospital?.numberOfBeds ? parseInt(editHospital.numberOfBeds) : 0,
+      ageOfHospital: editHospital?.ageOfHospital ? parseInt(editHospital.ageOfHospital) : 0,
+      rating: editHospital?.rating ? parseFloat(editHospital.rating) : 0,
+      about: editHospital?.about || '',
+      contactNumber: editHospital?.contactNumber || '',
+    };
 
-      // ✅ IMAGE PART
-      if (editHospital.localImage) {
-        const uri = editHospital.localImage;
-        const filename = uri.split('/').pop() || `photo_${Date.now()}.jpg`;
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : 'image/jpeg';
+    const formData = new FormData();
+    formData.append(
+      'hospital',
+      new Blob([JSON.stringify(hospitalInfoPayload)], {
+        type: 'application/json',
+      })
+    );
 
-        formData.append('picture', {
-          uri,
-          name: filename,
-          type,
-        });
-      }
+    // ✅ IMAGE PART
+    if (editHospital.localImage) {
+      const uri = editHospital.localImage;
+      const filename = uri.split('/').pop() || `photo_${Date.now()}.jpg`;
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
 
-      const res = await axios.put(
-        `${HOSPITAL_API}/update/${editHospital.id}`,
-        formData
-      );
-
-      // Extract the response properly
-      const updatedData = res.data || {};
-      console.log('Hospital update response:', updatedData);
-      
-      // Get the picture URL from response - try multiple possible fields
-      const pictureUrl = updatedData.picture || 
-                        updatedData.image || 
-                        (updatedData.hospital && updatedData.hospital.picture) ||
-                        editHospital.localImage ||
-                        editHospital.picture ||
-                        null;
-
-      const updatedHospital = {
-        ...updatedData,
-        picture: pictureUrl,
-      };
-
-      // Update hospitals list
-      setHospitals(prev =>
-        prev.map(h =>
-          h.id === editHospital.id ? updatedHospital : h
-        )
-      );
-
-      // Persist updated picture in AsyncStorage
-      if (updatedHospital.id && updatedHospital.picture) {
-        try {
-          await AsyncStorage.setItem(`hospital:${updatedHospital.id}:picture`, updatedHospital.picture);
-        } catch (e) {
-          console.log('Error saving updated hospital picture to storage', e);
-        }
-      }
-
-      // Update selected hospital if it's the same one
-      setSelectedHospital(prev =>
-        prev?.id === updatedHospital.id ? updatedHospital : prev
-      );
-
-      setEditHospitalModalVisible(false);
-
-      Alert.alert('Success ✅', 'Hospital updated successfully!');
-
-    } catch (error) {
-      console.error('Update hospital failed:', error?.response?.data || error.message || error);
-      Alert.alert(
-        'Error',
-        error?.response?.data?.message || 'Failed to update hospital. Please try again.'
-      );
-    } finally {
-      setUploadingImage(false);
+      formData.append('picture', {
+        uri,
+        name: filename,
+        type,
+      } as any); // Use 'as any' for TypeScript
     }
-  };
+
+    // 2. Add the Authorization header
+    const res = await axios.put(
+      `${HOSPITAL_API}/update/${editHospital.id}`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // Let axios set Content-Type for FormData automatically
+        },
+      }
+    );
+
+    // --- EXTRACT RESPONSE ---
+    const updatedData = res.data || {};
+    const pictureUrl = updatedData.picture || 
+                       updatedData.image || 
+                       (updatedData.hospital && updatedData.hospital.picture) ||
+                       editHospital.localImage ||
+                       null;
+
+    const updatedHospital = { ...updatedData, picture: pictureUrl };
+
+    // --- UPDATE STATE ---
+    setHospitals(prev => prev.map(h => h.id === editHospital.id ? updatedHospital : h));
+
+    if (updatedHospital.id && updatedHospital.picture) {
+      await AsyncStorage.setItem(`hospital:${updatedHospital.id}:picture`, updatedHospital.picture);
+    }
+
+    setSelectedHospital(prev => prev?.id === updatedHospital.id ? updatedHospital : prev);
+    setEditHospitalModalVisible(false);
+
+    Alert.alert('Success ✅', 'Hospital updated successfully!');
+
+  } catch (error) {
+    console.error('Update hospital failed:', error?.response?.data || error.message);
+    
+    // Handle specific session expiration
+    if (error.response?.status === 403 || error.response?.status === 401) {
+      Alert.alert('Unauthorized', 'Your session has expired. Please login again.');
+    } else {
+      Alert.alert('Error', error?.response?.data?.message || 'Failed to update hospital.');
+    }
+  } finally {
+    setUploadingImage(false);
+  }
+};
 
   // DELETE HOSPITAL
   const handleDeleteHospital = async (hospital) => {
@@ -1100,7 +1094,13 @@ const token = await AsyncStorage.getItem("AccessToken"); // Get Token
     if (!id) return;
 
     try {
-      await axios.delete(`${HOSPITAL_API}/delete/${id}`);
+      const token = await AsyncStorage.getItem('AccessToken');
+      await axios.delete(`${HOSPITAL_API}/delete/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
       setHospitals(prev => prev.filter(h => h.id !== id));
 
@@ -1211,33 +1211,70 @@ const token = await AsyncStorage.getItem("AccessToken"); // Get Token
   }
 };
 
-  const handleUpdateDepartment = async () => {
-    if (!editDepartment.id) return;
+ const handleUpdateDepartment = async () => {
+  // Ensure we check for both potential ID field names
+  const departmentId = editDepartment?.id || editDepartment?.departmentId;
 
-    try {
-      const departmentData = {
-        name: editDepartment.name,
-        description: editDepartment.description,
-      };
+  if (!departmentId) {
+    Alert.alert("Error", "Invalid Department ID");
+    return;
+  }
 
-      const response = await axios.put(`${DEPARTMENT_API}/update/${editDepartment.id}`, departmentData);
-      
-      Alert.alert('Success', 'Department updated successfully!');
-      setEditDepartmentModalVisible(false);
-      // Refresh departments list
+  try {
+    // 1. Retrieve the token from storage
+    const token = await AsyncStorage.getItem('AccessToken');
+
+    const departmentData = {
+      // Use optional chaining to prevent "null reading toString" errors
+      name: editDepartment?.name || '',
+      description: editDepartment?.description || '',
+    };
+
+    // 2. Add the Authorization header to the axios.put call
+    const response = await axios.put(
+      `${DEPARTMENT_API}/update/${departmentId}`, 
+      departmentData,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    Alert.alert('Success', 'Department updated successfully!');
+    setEditDepartmentModalVisible(false);
+    
+    // Refresh departments list
+    if (selectedHospital?.id) {
       fetchDepartments(selectedHospital.id);
-    } catch (error) {
-      console.error('Update department failed:', error?.response?.data || error.message);
+    }
+    
+  } catch (error) {
+    console.error('Update department failed:', error?.response?.data || error.message);
+    
+    // Specific check for token issues
+    if (error.response?.status === 403 || error.response?.status === 401) {
+      Alert.alert('Unauthorized', 'Your session has expired. Please login again.');
+    } else {
       Alert.alert('Error', error?.response?.data?.message || 'Failed to update department');
     }
-  };
+  }
+};
 
   const handleDeleteDepartment = async (department) => {
     const id = department?.id;
     if (!id) return;
 
     try {
-      await axios.delete(`${DEPARTMENT_API}/delete/${id}`);
+      const token = await AsyncStorage.getItem('AccessToken');
+      await axios.delete(`${DEPARTMENT_API}/delete/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
       // Remove department from local state
       setDepartments(prev => prev.filter(d => d.id !== id));
@@ -1385,102 +1422,121 @@ const token = await AsyncStorage.getItem("AccessToken"); // Get Token
 };
 
   const handleUpdateDoctor = async () => {
-    if (!editDoctor.id) return;
+  if (!editDoctor.id) return;
 
-    try {
-      setUploadingDoctorImage(true);
+  try {
+    setUploadingDoctorImage(true);
 
-      const doctorData = {
-        name: editDoctor.name,
-        phone: editDoctor.phone,
-        mail: editDoctor.mail || '',
-        specialization: editDoctor.specialization,
-        experience: parseInt(editDoctor.experience) || 0,
-        fee: parseFloat(editDoctor.fee) || 0,
-        education: editDoctor.education || '',
-        departmentId: editDoctor.departmentId,
-        cabinNumber: editDoctor.cabinNumber || null,
-      };
+    // 1. Retrieve the token from storage
+    const token = await AsyncStorage.getItem('AccessToken');
 
-      const formData = new FormData();
-      formData.append(
-        'doctor',
-        new Blob([JSON.stringify(doctorData)], {
-          type: 'application/json',
-        })
-      );
+    const doctorData = {
+      // Use optional chaining to prevent the "toString/null" error
+      name: editDoctor?.name || '',
+      phone: editDoctor?.phone || '',
+      mail: editDoctor?.mail || '',
+      specialization: editDoctor?.specialization || '',
+      experience: editDoctor?.experience ? parseInt(editDoctor.experience) : 0,
+      fee: editDoctor?.fee ? parseFloat(editDoctor.fee) : 0,
+      education: editDoctor?.education || '',
+      departmentId: editDoctor?.departmentId,
+      cabinNumber: editDoctor?.cabinNumber || null,
+    };
 
-      // ✅ IMAGE PART
-      if (editDoctor.localImage) {
-        const uri = editDoctor.localImage;
-        const filename = uri.split('/').pop() || `doctor_${Date.now()}.jpg`;
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : 'image/jpeg';
+    const formData = new FormData();
+    formData.append(
+      'doctor',
+      new Blob([JSON.stringify(doctorData)], {
+        type: 'application/json',
+      })
+    );
 
-        formData.append('picture', {
-          uri,
-          name: filename,
-          type,
-        });
+    // ✅ IMAGE PART
+    if (editDoctor.localImage) {
+      const uri = editDoctor.localImage;
+      const filename = uri.split('/').pop() || `doctor_${Date.now()}.jpg`;
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+      formData.append('picture', {
+        uri,
+        name: filename,
+        type,
+      } as any); // Use 'as any' for TypeScript compatibility
+    }
+
+    // 2. Pass the token in the headers object
+    const res = await axios.put(
+      `${DOCTOR_API}/update/${editDoctor.id}`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // Let Axios handle the Content-Type automatically for FormData
+        },
       }
+    );
 
-      const res = await axios.put(
-        `${DOCTOR_API}/update/${editDoctor.id}`,
-        formData
-      );
+    const updatedData = res.data || {};
+    
+    // Get picture URL from response
+    const pictureUrl = updatedData.picture || 
+                      updatedData.image || 
+                      (updatedData.doctor && updatedData.doctor.picture) ||
+                      editDoctor.localImage ||
+                      null;
 
-      const updatedData = res.data || {};
-      console.log('Doctor update response:', updatedData);
-      
-      // Get picture URL from response
-      const pictureUrl = updatedData.picture || 
-                        updatedData.image || 
-                        (updatedData.doctor && updatedData.doctor.picture) ||
-                        editDoctor.localImage ||
-                        editDoctor.picture ||
-                        null;
+    const updatedDoctor = {
+      ...updatedData,
+      picture: pictureUrl,
+    };
 
-      const updatedDoctor = {
-        ...updatedData,
-        picture: pictureUrl,
-      };
+    // Update doctors list UI
+    setDoctors(prev =>
+      prev.map(d => (d.id === editDoctor.id ? updatedDoctor : d))
+    );
 
-      // Update doctors list
-      setDoctors(prev =>
-        prev.map(d =>
-          d.id === editDoctor.id ? updatedDoctor : d
-        )
-      );
-
-      // Persist updated doctor picture locally
-      if (updatedDoctor.id && updatedDoctor.picture) {
-        try {
-          await AsyncStorage.setItem(`doctor:${updatedDoctor.id}:picture`, updatedDoctor.picture);
-        } catch (e) {
-          console.log('Error saving updated doctor picture to storage', e);
-        }
+    // Persist updated doctor picture locally
+    if (updatedDoctor.id && updatedDoctor.picture) {
+      try {
+        await AsyncStorage.setItem(`doctor:${updatedDoctor.id}:picture`, updatedDoctor.picture);
+      } catch (e) {
+        console.log('Error saving updated doctor picture to storage', e);
       }
+    }
 
-      Alert.alert('Success', 'Doctor updated successfully!');
-      setEditDoctorModalVisible(false);
+    Alert.alert('Success', 'Doctor updated successfully!');
+    setEditDoctorModalVisible(false);
 
-    } catch (error) {
-      console.error('Update doctor failed:', error?.response?.data || error.message);
+  } catch (error) {
+    console.error('Update doctor failed:', error?.response?.data || error.message);
+    
+    // Handle specific Unauthorized error
+    if (error.response?.status === 403 || error.response?.status === 401) {
+      Alert.alert('Unauthorized', 'Your session has expired. Please login again.');
+    } else {
       Alert.alert(
         'Error',
         error?.response?.data?.message || 'Failed to update doctor'
       );
-    } finally {
-      setUploadingDoctorImage(false);
     }
-  };
+  } finally {
+    setUploadingDoctorImage(false);
+  }
+};
 
   const handleDeleteDoctor = async (doctor) => {
     const id = doctor?.id;
     if (!id) return;
 
     try {
-      await axios.delete(`${DOCTOR_API}/delete/${id}`);
+      const token = await AsyncStorage.getItem('AccessToken');
+      await axios.delete(`${DOCTOR_API}/delete/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
       // Remove doctor from local state
       setDoctors(prev => prev.filter(d => d.id !== id));
