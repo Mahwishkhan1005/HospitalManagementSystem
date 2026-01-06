@@ -26,25 +26,49 @@ const ReceptionDoctor = () => {
   
   const isWeb = Platform.OS === "web";
   
-  // Dynamic endpoint for the specific hospital
-  const API_URL = "http://192.168.0.133:8080/api/doctors/hospital/7541e2c2-fbe3-491a-8b7f-f257c12c51d1";
+  const API_URL = "http://192.168.0.246:8080/api/doctors/hospital";
 
   useEffect(() => {
     fetchDoctors();
   }, []);
 
+  /* -------------------- LOGOUT -------------------- */
+  const handleLogout = async () => {
+    try {
+      // Clear both token and role for security
+      await AsyncStorage.multiRemove(["AccessToken", "userRole"]);
+      router.replace("/");
+    } catch (e) {
+      console.error("Logout failed", e);
+    }
+  };
+
+  /* -------------------- FETCH DATA (JWT INCLUDED) -------------------- */
   const fetchDoctors = async () => {
     try {
       setLoading(true);
+      // 1. Retrieve the token from storage
+      const token = await AsyncStorage.getItem("AccessToken");
+
       const response = await axios.get(API_URL, {
         timeout: 8000,
-        headers: { 'Accept': 'application/json' }
+        headers: { 
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}` // 2. Attach JWT Token
+        }
       });
       setDoctors(response.data || []);
     } catch (error: any) {
       console.error("Fetch Error:", error.message);
-      const errorMsg = "Unable to connect to doctor directory. Please check your network.";
-      isWeb ? window.alert(errorMsg) : Alert.alert("Connection Error", errorMsg);
+      
+      // 3. Auto-logout if token is expired (401) or unauthorized (403)
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        Alert.alert("Session Expired", "Please login again.");
+        handleLogout();
+      } else {
+        const errorMsg = "Unable to connect to doctor directory. Please check your network.";
+        isWeb ? window.alert(errorMsg) : Alert.alert("Connection Error", errorMsg);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -54,15 +78,6 @@ const ReceptionDoctor = () => {
   const onRefresh = () => {
     setRefreshing(true);
     fetchDoctors();
-  };
-
-  const handleLogout = async () => {
-    try {
-      await AsyncStorage.removeItem("AccessToken");
-      router.replace("/");
-    } catch (e) {
-      console.error("Logout failed", e);
-    }
   };
 
   const filteredDoctors = useMemo(() => {
@@ -141,7 +156,6 @@ const ReceptionDoctor = () => {
 
   return (
     <View className="flex-1 bg-gray-50">
-      {/* UPDATED HEADER: Matches ReceptionistHome exactly */}
       <LinearGradient
         colors={["rgba(177,235,252,0.86)", "rgba(90,250,215,0.86)"]}
         start={{ x: 0, y: 0 }}
@@ -182,7 +196,6 @@ const ReceptionDoctor = () => {
         </View>
       </LinearGradient>
 
-      {/* LIST AREA */}
       <View className="flex-1">
         <View className="flex-row justify-between px-5 pb-2 pt-4">
           <Text className="text-lg font-bold text-gray-800">Available Specialists</Text>

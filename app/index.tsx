@@ -131,7 +131,8 @@ const checkLoginStatus = async () => {
     }
   };
 
-  const handleResetPasswordSubmit = async () => {
+  const handleResetPasswordSubmit = async () => 
+    {
     const BASE_URL = "http://192.168.0.236:8080";
     try {
       if (!isOtpVerified) {
